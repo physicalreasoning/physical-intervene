@@ -1,0 +1,13 @@
+# Generated simulator data (never committed; pinned by sha256 in frozen/)
+data/
+
+# Python / uv environments & build artifacts
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
