@@ -51,8 +51,10 @@ TARGET_STD_FLOORS = (1e-4, 1e-4, 1e-3)
 # Matching and gates.
 MATCH_TARGET_FACTOR = 1.1  # V* = 1.1 x largest per-architecture median best L_obs
 MATCHED_LOSS_REL_TOL = 0.05
-BOOTSTRAP_REPLICATES = 5_000
+BOOTSTRAP_REPLICATES = 5_000  # gated intervals and p-values (G1, G2)
+DESCRIPTIVE_BOOTSTRAP_REPLICATES = 2_000  # std_mse_ci95, matched_obs_val_ci95; as evm-intervene
 G1_ALPHA = 0.05
 G1_MIN_REL_GAP = 0.20
+G1_MIN_SEEDS_PER_ARCHITECTURE = 3  # fewer matched seeds left drops the architecture from G1
 G2_DECOUPLED_BELOW = 0.50
 G2_REFUTED_AT_OR_ABOVE = 0.80

@@ -14,8 +14,9 @@ large errors under intervention?
 
 This is the physical counterpart of
 [evm-intervene](https://github.com/physicalreasoning/evm-intervene), the market version on
-Uniswap V3. It uses the same quantities, gates and result format so the two read side by side
-(see *Shared terms*). It also builds on forward's Task 3, interventions on the order book.
+Uniswap V3. It uses the same quantities and gates, and the shared result format drafted in
+forward's `docs/INTERVENTION_REPORTING.md`, so the two read side by side (see *Shared terms*).
+It also builds on forward's Task 3, interventions on the order book.
 
 ## Shared terms with evm-intervene
 
@@ -31,10 +32,11 @@ Uniswap V3. It uses the same quantities, gates and result format so the two read
 | Δ_int, the issue's *consistency gap* | E_int(challenger) − E_int(reference) at matched checkpoints; JSON `matched_cliff_gap.gap` | same quantity; JSON `matched_contact_gap.gap` |
 | std-MSE | `TargetScaler`, training-split std, per-dimension floors | same; floors in this task's units |
 | match screen | \|L_a − L_b\| / min(L_a, L_b) ≤ 0.05 | same |
-| bootstrap, p-value, Holm | 5,000 replicates; p = min(1, 2(min(#≤0, #≥0)+1)/5,001); Holm across pairs | same |
+| bootstrap, p-value, Holm | 5,000 replicates over held-out states (one per archive checkpoint, 54); p = min(1, 2(min(#≤0, #≥0)+1)/5,001); Holm across all pairs tested, screened or not | same; held-out simulator states (1,000) |
 | seeds | 11, 22, 33, 44, 55 | same |
-| G0 | simulator matches on-chain price; every model beats `copy` on L_obs | bit-exact replay; every model beats `copy`; controls (see G0) |
-| G1 pass rule | screened pair with Holm p < 0.05, CI excludes zero, relative gap ≥ 20% | same |
+| E_int aggregation | per-transition loss averaged over seeds, then over all hard transitions, pooled across states | same |
+| G0 | simulator matches on-chain price; every model beats `copy` on L_obs (best checkpoints) | bit-exact replay; every main model beats `copy` (matched and best checkpoints); controls (see G0) |
+| G1 pass rule | screened pair with Holm p < 0.05, CI excludes zero, relative gap ≥ 20% | same; *not testable* if no pair passes the screen |
 | G2 reading | Spearman ρ(L_obs, E_int) over best checkpoints; decoupled if point ρ < 0.50 | same; refuted if point ρ ≥ 0.80 |
 
 ### Deliberate differences
@@ -47,7 +49,6 @@ side by side.
 | Pairs in G1 | each of 3 challengers against one anchor, `conservation_wm` | all 3 pairs of main architectures | there is no structured model that plays the anchor's role |
 | Relative gap | Δ / E_int(reference), reference = the anchor | Δ / E_int(reference), reference = the pair member with the lower E_int | with no anchor, this fixes the reference so Δ ≥ 0 and the formula is evm's |
 | Loss matching | anchor uses its best checkpoint; other models stop at the checkpoint closest to the anchor's 5-seed mean best L_obs | every architecture takes the checkpoint closest to V* = 1.1 × the largest per-architecture median best L_obs | no model is favoured by being the anchor, and V* is reachable by all |
-| Bootstrap cluster | temporal block of held-out archive checkpoints (54) | held-out simulator state (1,000) | each state is an independent reset; there is no time structure |
 | Bootstrap resamples | clusters only | clusters and, independently per architecture, the 5 seeds (evm's version is reported too) | stops a seed-to-seed difference from passing as an architecture difference |
 | G0.1 | simulator vs on-chain price, median error < 0.05 bps | bit-exact replay of the full integration state | the simulator is the ground truth here, so exactness is checkable |
 
@@ -129,8 +130,9 @@ step under each of K = 24 actions:
 Each action is labelled contact or no contact by the simulator, as above. **Contact is the
 primary stratum**, the counterpart of evm-intervene's regimes II and III. A held-out state with no
 contact action is dropped from the contact stratum for every model. The logged action from the
-same state is also scored, as the observational reference on the same states. **It is not an
-intervention and never enters E_int**, in any stratum, gate or secondary analysis.
+same state is also scored, as the observational reference on the same states, and reported
+under each model's `logged_action` key. **It is not an intervention and never enters E_int**,
+in any stratum, gate or secondary analysis.
 
 For each intervention we also record the behaviour policy's log-density of that action at that
 state (mixture of the scripted-plus-noise Gaussian and the uniform), for an exploratory plot.
@@ -155,7 +157,8 @@ equal-observability rule, so a failure cannot come from missing inputs.
 Main models: 3 widths (*small*, *medium*, *large*, exact sizes *set by pilot*) × 5 seeds = 45
 runs. Each run saves a checkpoint every 1,000 updates. Controls: medium width, 5 seeds. Optimiser,
 learning rate, batch size and number of updates are *set by pilot* on pilot and validation data
-only, and are the same for every seed.
+only. Each architecture gets its own settings, chosen by the same pilot procedure and budget,
+and shared across its seeds and widths.
 
 ## Matching observational loss
 
@@ -166,8 +169,11 @@ Fixed now, before training. All steps use validation data only. No test state ex
    architecture can reach.
 2. Each medium run's **matched checkpoint** is the one whose L_obs is closest to V*.
 3. A pair of architectures passes the **match screen** if their seed-mean matched L_obs satisfy
-   |L_a − L_b| / min(L_a, L_b) ≤ 0.05. Runs that never come within 5% of V* are excluded and
-   reported.
+   |L_a − L_b| / min(L_a, L_b) ≤ 0.05.
+4. A run whose L_obs never comes within 5% of V* is excluded, and every exclusion is reported.
+   An architecture's matched L_obs, E_int and seed resampling then use its remaining seeds. An
+   architecture with fewer than 3 of its 5 seeds left is dropped from G1 and reported; if that
+   leaves fewer than two architectures, G1 is *not testable*.
 
 ## Gates
 
@@ -182,33 +188,34 @@ published.
    1,000 of 1,000 states, all 25 actions each. The same check on a second machine of the same
    platform is reported, not gated.
 2. **Every main model beats `copy` on L_obs**, at both its matched and best checkpoints (seed
-   mean). This is evm-intervene's G0.2.
+   mean). This is evm-intervene's G0.2, which checks best checkpoints only. Controls are not
+   main models.
 3. **Controls.** On the contact stratum, `blind` has a higher E_int than `mlp-random`, with a 95%
    interval excluding zero (the test can see a gap), and `mlp-random` beats `copy` on E_int (a
    small gap is reachable). The two controls differ in both the input (action removed) and the
    training data (behaviour vs uniform actions). This check only shows the test can detect a gap
    when one is built in; it does not say which of the two differences causes it.
 
-**G1. Matched-loss separation (primary).** For each of the 3 pairs of main architectures that
-pass the match screen:
+**G1. Matched-loss separation (primary).** For each of the 3 pairs of main architectures:
 
 - In each pair, the *reference* is the architecture with the lower point E_int and the
   *challenger* is the other. Δ_int = E_int(challenger) − E_int(reference) on the contact stratum,
-  at matched checkpoints. For each held-out state, per-transition std-MSE is averaged over the 5
-  seeds, then over the state's contact actions, then over states. Because the test is
-  two-sided, choosing the reference after scoring does not change p.
+  at matched checkpoints. Each contact transition's std-MSE is averaged over the 5 seeds, then
+  over all contact transitions, pooled across states, as in evm-intervene. A state with more
+  contact actions therefore weighs more. Because the test is two-sided, choosing the reference
+  after scoring does not change p.
 - 5,000 paired bootstrap replicates, as in evm-intervene. **Unlike evm-intervene, each replicate
   also resamples the 5 seeds of each architecture with replacement, independently.** The
   held-out states are resampled with replacement and shared across models (paired). Without the
   seed resampling, a difference between two training seeds of the same architecture could pass.
 - p = min(1, 2 × (min(#Δ* ≤ 0, #Δ* ≥ 0) + 1) / (5,000 + 1)), as in evm-intervene. Holm
-  correction across the pairs that pass the screen.
+  correction across all 3 pairs, whether or not they pass the screen, as in evm-intervene.
 - Relative gap = Δ_int / E_int(reference), evm-intervene's formula (`rel_gap`).
 - The same test is also run at best checkpoints and reported as `best_contact_gap`, as
   evm-intervene does. It is not gated.
 
-**Pass**: at least one screened pair has a Holm-adjusted p < 0.05, a 95% interval excluding zero
-and a relative gap ≥ 20%. **Fail**: no screened pair does. That is a negative result about our own
+**Pass**: at least one pair that passes the match screen has a Holm-adjusted p < 0.05, a 95%
+interval excluding zero and a relative gap ≥ 20%. **Fail**: no screened pair does. That is a negative result about our own
 position, published the same way. If no pair passes the screen, G1 is reported as *not testable*
 with the observed L_obs differences.
 
@@ -236,7 +243,8 @@ wide, so a decoupled reading whose interval reaches 0.50 is stated as such in th
 - **10-step rollouts**, free-running, under constant interventions, as evm-intervene's 12-step
   rollouts. Validation for this analysis uses 10-step rollouts with logged actions, so the two
   are compared in the same mode.
-- G1 repeated at the small and large widths.
+- G1 repeated at the small and large widths, each with its own V* computed by the same rule
+  from that width's runs.
 - **Closed-loop**: push-to-goal with each model inside a sampling planner (MPC), success rate
   against L_obs and E_int. Does E_int predict closed-loop success better than L_obs?
 
@@ -257,14 +265,16 @@ wide, so a decoupled reading whose interval reaches 0.50 is stated as such in th
 
 ## Results format
 
-One JSON with the same layout and keys as evm-intervene's
-`results/mainnet_intervention_results.json`: top-level run metadata, then one block per analysis
-(here only `primary`). Keys are renamed only where the stratum or unit differs:
+One JSON, `results/intervention_results.json`, in the shared format drafted in forward's
+`docs/INTERVENTION_REPORTING.md`. That format is evm-intervene's
+`results/mainnet_intervention_results.json` written down: top-level run metadata, then one block
+per analysis (here only `primary`). Keys use this task's own names where the stratum or unit
+differs:
 
 | evm-intervene key | here |
 | --- | --- |
 | `regime_1_smooth` | `no_contact` |
-| `regime_2_cliff` + `regime_3_cascade` (the gated set) | `contact` |
+| `regime_2_cliff`, `regime_3_cascade` and their union block `cliff_and_cascade` (gated) | `contact` (gated) |
 | `*_cliff_*` (e.g. `matched_cliff_gap`, `best_cliff_std_mse`) | `*_contact_*` |
 | `price_rmse_bps`, `*_price_bps` | `corner_rmse_mm`, `*_corner_mm` |
 | `liquidity_rmse` | `angle_rmse_deg` |
@@ -272,12 +282,25 @@ One JSON with the same layout and keys as evm-intervene's
 | `oot_obs_*` (out-of-time) | not applicable, omitted |
 | `passes_5pct_match_with_conservation` | omitted; each pair's `matched_within_5pct` covers it |
 
-Added keys, absent in evm-intervene: `gate_g0_valid` (evm keeps G0 in
-`simulator_verification.json`), `matched_contact_gap_states_only` (evm's interval, no seed
-resampling), `resampled` and `decoupled_by_interval`. Values below are placeholders.
+E_int for G1 is the seed mean of `seed_checkpoints[*].matched_contact_std_mse`, as in
+evm-intervene. The `std_mse` in each model's stratum blocks is the error of the seed-averaged
+prediction, reported and not gated.
+
+Descriptive intervals, as in evm-intervene: `std_mse_ci95` resamples held-out states, on the
+seed-averaged prediction; `matched_obs_val_ci95` resamples validation episodes, on the
+seed-averaged L_obs. Both use 2,000 replicates, as in evm-intervene; neither is gated. Every
+gated interval and p-value uses 5,000.
+
+Added keys, absent in evm-intervene's output: the shared format's optional keys
+(`format_version`, `strata`, `units`, `resampled`, `gate_g0_valid`, `gate_g1_reading`,
+`gate_g2_reading`), and `matched_contact_gap_states_only` (evm's interval, no seed resampling),
+`decoupled_by_interval`, `updates` (evm's `epochs`), `width`, `controls` (the two control
+models, laid out as `models`) and `logged_action` (per model, the logged action scored on the
+test states). Values below are placeholders.
 
 ```json
 {
+  "format_version": "0.1",
   "benchmark": "physical-intervene/pushing",
   "device": "cpu",
   "seeds": [11, 22, 33, 44, 55],
@@ -285,6 +308,8 @@ resampling), `resampled` and `decoupled_by_interval`. Values below are placehold
   "wall_seconds": 0.0,
   "primary": {
     "arm_name": "primary",
+    "strata": {"hard": ["contact"], "easy": ["no_contact"], "hard_block": "contact"},
+    "units": {"physical_unit": "corner_rmse_mm"},
     "counts": {
       "n_train_obs": 100000, "n_val_obs": 10000,
       "n_interventions_total": 24000, "n_held_out_checkpoints": 1000,
@@ -301,8 +326,9 @@ resampling), `resampled` and `decoupled_by_interval`. Values below are placehold
           "contact":    {"n": 9000,  "std_mse": 0.0, "std_mse_ci95": [0.0, 0.0], "corner_rmse_mm": 0.0, "angle_rmse_deg": 0.0}
         }
       },
-      "constvel": {}, "knn": {}, "blind": {}, "mlp-random": {}
+      "constvel": {}, "knn": {}
     },
+    "controls": {"blind": {}, "mlp-random": {}},
     "models": {
       "gru": {
         "n_seeds": 5,
@@ -310,6 +336,7 @@ resampling), `resampled` and `decoupled_by_interval`. Values below are placehold
         "matched_obs_val_ci95": [0.29, 0.33], "matched_obs_val_corner_rmse_mm": 0.0,
         "best_obs_val_std_mse_mean": 0.28, "best_obs_val_std_mse_sd": 0.01,
         "beats_copy_on_obs": true,
+        "logged_action": {"n": 1000, "std_mse": 0.0, "corner_rmse_mm": 0.0},
         "matched_checkpoint_interventions": {"all": {}, "no_contact": {}, "contact": {}},
         "best_checkpoint_interventions": {"all": {}, "no_contact": {}, "contact": {}}
       },
@@ -329,7 +356,8 @@ resampling), `resampled` and `decoupled_by_interval`. Values below are placehold
       "spearman_obs_vs_contact_corner_mm": {"rho": 0.2, "p_value": 0.2, "ci_low": -0.1, "ci_high": 0.5},
       "decoupled_by_interval": false
     },
-    "gates": {"gate_g0_valid": true, "gate_g1_matched_separation_pass": true, "gate_g2_obs_rank_decoupled": true},
+    "gates": {"gate_g0_valid": true, "gate_g1_matched_separation_pass": true, "gate_g2_obs_rank_decoupled": true,
+              "gate_g1_reading": "pass", "gate_g2_reading": "decoupled"},
     "seed_checkpoints": [
       {"family": "gru", "width": "medium", "seed": 11,
        "best_obs_val_loss": 0.28, "matched_obs_val_loss": 0.31,
@@ -361,12 +389,11 @@ confirms this. If it does not, the large width is dropped, a fallback stated now
 
 ## Open questions for the maintainers and @Bangar-Lovejesh
 
-1. Keep "cliff" in shared keys and map contact to it, or rename both to a neutral "hard stratum"?
-2. Should evm-intervene adopt seed resampling in G1 too, so the two G1s mean the same thing?
-3. Repo name: `physical-intervene`, with pushing as task 1.
-4. evm-intervene's `docs/DESIGN.md` and its code differ in two places: G2 is described as
+1. Should evm-intervene adopt seed resampling in G1 too, so the two G1s mean the same thing?
+   Until then, its `matched_cliff_gap` compares with `matched_contact_gap_states_only` here.
+2. evm-intervene's `docs/DESIGN.md` and its code differ in two places: G2 is described as
    including intermediate matched-loss checkpoints, but the code uses the 20 best checkpoints;
    and G2's reading is not stated as point estimate or interval, while the code uses the point
    estimate. This design follows the code. Should evm-intervene's DESIGN.md be updated to match?
-5. Is the relative-gap convention here (reference = the lower-E_int member of each pair) the
+3. Is the relative-gap convention here (reference = the lower-E_int member of each pair) the
    right generalisation of evm's anchor, or should both repos name a fixed reference?
