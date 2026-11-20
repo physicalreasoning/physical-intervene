@@ -25,8 +25,8 @@ matters most.
   G2 rank correlation between validation loss and intervention error.
 
 Full design: [docs/DESIGN.md](docs/DESIGN.md). Results use the reporting format shared with
-evm-intervene, proposed in
-[forward's draft](https://github.com/sudongtan/forward/blob/intervention-reporting-format/docs/INTERVENTION_REPORTING.md).
+evm-intervene, drafted in
+[docs/INTERVENTION_REPORTING.md](docs/INTERVENTION_REPORTING.md).
 
 ## Pre-registration
 

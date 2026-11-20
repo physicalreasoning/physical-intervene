@@ -15,8 +15,8 @@ large errors under intervention?
 This is the physical counterpart of
 [evm-intervene](https://github.com/physicalreasoning/evm-intervene), the market version on
 Uniswap V3. It uses the same quantities and gates, and the shared result format drafted in
-forward's `docs/INTERVENTION_REPORTING.md`, so the two read side by side (see *Shared terms*).
-It also builds on forward's Task 3, interventions on the order book.
+[INTERVENTION_REPORTING.md](INTERVENTION_REPORTING.md), so the two read side by side (see
+*Shared terms*). It also builds on forward's Task 3, interventions on the order book.
 
 ## Shared terms with evm-intervene
 
@@ -265,8 +265,8 @@ wide, so a decoupled reading whose interval reaches 0.50 is stated as such in th
 
 ## Results format
 
-One JSON, `results/intervention_results.json`, in the shared format drafted in forward's
-`docs/INTERVENTION_REPORTING.md`. That format is evm-intervene's
+One JSON, `results/intervention_results.json`, in the shared format drafted in
+[INTERVENTION_REPORTING.md](INTERVENTION_REPORTING.md). That format is evm-intervene's
 `results/mainnet_intervention_results.json` written down: top-level run metadata, then one block
 per analysis (here only `primary`). Keys use this task's own names where the stratum or unit
 differs:
