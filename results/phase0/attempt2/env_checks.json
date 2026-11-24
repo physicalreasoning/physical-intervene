@@ -1,0 +1,749 @@
+{
+  "milestone": "phase0 milestone 1: simulator and environment checks",
+  "models_used": "none",
+  "seeds": {
+    "split_ranges": {
+      "train": [
+        1000000,
+        2000000
+      ],
+      "validation": [
+        2000000,
+        3000000
+      ],
+      "smoke": [
+        3000000,
+        4000000
+      ],
+      "pilot": [
+        4000000,
+        5000000
+      ]
+    },
+    "smoke_attempt": 2,
+    "smoke_episodes": [
+      3600000,
+      3600049
+    ],
+    "coverage_pool": [
+      3700000,
+      3700999
+    ],
+    "test_like_states": [
+      3800000,
+      3800199
+    ],
+    "skipped_state_seeds": [],
+    "stream_keys": {
+      "init": 0,
+      "goal": 1,
+      "eps": 2,
+      "noise": 3,
+      "uniform": 4,
+      "shadow_eps": 5,
+      "shadow_noise": 6,
+      "shadow_uniform": 7,
+      "select": 8,
+      "interventions": 9,
+      "feasibility_eps": 10,
+      "feasibility_noise": 11,
+      "feasibility_uniform": 12
+    }
+  },
+  "scene_sha256": "31a352109439f6cc7eb365577e26df8ddf32a50ade0ad827158e51a6adcee3bf",
+  "data_sha256": {
+    "coverage_pool.npz": "99c41147d20cc8e1b2f69bbf46971aa849740b76b8bb845ecdd32f58c8ae6049",
+    "episodes.npz": "7d18b11b7be6cca288914c9a1003996c8480f5797d2a6071382896506e60fa1d",
+    "states.npz": "97652c79a7cf69a5072260f62d0953cd6105160bc5e4e26eb629a4615d29f173"
+  },
+  "epsilon_near": 0.05,
+  "versions": {
+    "mujoco": "4.0.1",
+    "python": "3.14.7",
+    "numpy": "2.5.5"
+  },
+  "platform": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64"
+  },
+  "checks": {
+    "bit_exact_replay": {
+      "local": {
+        "n_states": 200,
+        "n_actions_per_state": 25,
+        "n_compared": 5000,
+        "n_mismatched": 0,
+        "first_mismatches": [],
+        "passed": true,
+        "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+        "machine": "arm64",
+        "python": "3.14.7",
+        "mujoco": "4.0.1",
+        "run": "fresh local process"
+      },
+      "pass_condition": "every smoke state and all 25 actions byte-identical",
+      "docker": {
+        "n_states": 200,
+        "n_actions_per_state": 25,
+        "n_compared": 5000,
+        "n_mismatched": 0,
+        "first_mismatches": [],
+        "passed": true,
+        "platform": "Linux-7.0.14-linuxkit-x86_64-with-glibc2.36",
+        "machine": "x86_64",
+        "python": "3.12.16",
+        "mujoco": "4.0.1",
+        "run": "generate and check in two separate docker run calls (fresh processes), image physical-intervene:phase0 sha256:6b7201f322307c30c0faef68383f784901e5f30d4cf0a6b6142aef26875dd810, linux/amd64 under Rosetta on Apple Silicon"
+      },
+      "passed": true
+    },
+    "push_thresholds": {
+      "n_contact_interventions": 3070,
+      "d_push_mm": 2.0,
+      "theta_push_deg": 1.0,
+      "graze_share_of_contacts": 0.395114006514658,
+      "displacement_vs_reference_mm": {
+        "n": 3070,
+        "mean": 2.775011566011098,
+        "q05": 0.0,
+        "q25": 0.5972221814848441,
+        "q50": 2.256745108617484,
+        "q75": 4.304354592075123,
+        "q95": 7.656217389881551
+      },
+      "rotation_vs_reference_deg": {
+        "n": 3070,
+        "mean": 0.9618266561705078,
+        "q05": 0.0,
+        "q25": 0.015352982052214375,
+        "q50": 0.2894418125740748,
+        "q75": 1.3610034991760485,
+        "q95": 4.072272590129038
+      },
+      "share_with_no_effect_at_all": 0.13224755700325733,
+      "share_displacement_within_factor_2_of_d_push": 0.396742671009772,
+      "share_below_d_push_but_rotated_at_least_theta_push": 0.06644951140065146,
+      "total_motion_displacement_mm": {
+        "n": 3070,
+        "mean": 4.6995028258741725,
+        "q05": 0.31130714566210016,
+        "q25": 1.9895071345089201,
+        "q50": 4.41229124986581,
+        "q75": 6.903033540406448,
+        "q95": 10.543714940143674
+      },
+      "pass_condition": "move the defaults only to a gap between grazes and pushes that they cut above; keep them otherwise",
+      "passed": null,
+      "decision": "defaults kept (d_push 2 mm, theta_push 1 deg). Against the no-contact reference, 13% of contacts change nothing (a spike at zero) and the rest form a continuum peaking at 3 to 5 mm. The only gap, between zero and about 0.01 mm, separates no-effect touches from all others, not grazes from pushes, so the rule has no gap to move to. 2 mm lies near the median of contact effects"
+    },
+    "pusher_can_move_box": {
+      "analytic": {
+        "kv_N_s_per_m": 10.0,
+        "forcerange_N": 2.0,
+        "slide_frictionloss_N": 0.1,
+        "hinge_frictionloss_N_m": 0.004,
+        "F_resist_N": 0.14142135623730953,
+        "F_at_0.05_N": 0.5,
+        "F_at_0.10_N": 1.0,
+        "margin_at_0.05": 3.535533905932737,
+        "pass_condition": "F(0.05 m/s) >= 2.0 * F_resist",
+        "passed": true
+      },
+      "simulator": {
+        "pushes": [
+          {
+            "case": "centred_x_0.05",
+            "contact": true,
+            "displacement_mm": 2.321771161851201,
+            "rotation_deg": 0.0,
+            "box_speed_end_m_s": 0.03912824970326062,
+            "expected_steady_speed_m_s": 0.04
+          },
+          {
+            "case": "centred_y_0.05",
+            "contact": true,
+            "displacement_mm": 2.3217711618512014,
+            "rotation_deg": 0.0,
+            "box_speed_end_m_s": 0.03912824970326063,
+            "expected_steady_speed_m_s": 0.04
+          },
+          {
+            "case": "centred_diagonal_0.05",
+            "contact": true,
+            "displacement_mm": 2.1275478621421158,
+            "rotation_deg": 0.0,
+            "box_speed_end_m_s": 0.035279196779456026,
+            "expected_steady_speed_m_s": 0.03585786437626905
+          },
+          {
+            "case": "centred_x_0.10",
+            "contact": true,
+            "displacement_mm": 5.992474375687208,
+            "rotation_deg": 0.0,
+            "box_speed_end_m_s": 0.08833709345589388,
+            "expected_steady_speed_m_s": 0.09000000000000001
+          },
+          {
+            "case": "centred_y_0.10",
+            "contact": true,
+            "displacement_mm": 5.992474375687208,
+            "rotation_deg": 0.0,
+            "box_speed_end_m_s": 0.0883370934558939,
+            "expected_steady_speed_m_s": 0.09000000000000001
+          },
+          {
+            "case": "centred_diagonal_0.10",
+            "contact": true,
+            "displacement_mm": 5.759194363779367,
+            "rotation_deg": 0.0,
+            "box_speed_end_m_s": 0.08439750415479515,
+            "expected_steady_speed_m_s": 0.08585786437626905
+          },
+          {
+            "case": "centred_x_0.15",
+            "contact": true,
+            "displacement_mm": 9.711617270199278,
+            "rotation_deg": 0.0,
+            "box_speed_end_m_s": 0.13711988020957444,
+            "expected_steady_speed_m_s": 0.13999999999999999
+          },
+          {
+            "case": "centred_y_0.15",
+            "contact": true,
+            "displacement_mm": 9.711617270199264,
+            "rotation_deg": 0.0,
+            "box_speed_end_m_s": 0.13711988020957433,
+            "expected_steady_speed_m_s": 0.13999999999999999
+          },
+          {
+            "case": "centred_diagonal_0.15",
+            "contact": true,
+            "displacement_mm": 9.451885154442339,
+            "rotation_deg": 0.0,
+            "box_speed_end_m_s": 0.1331813129327685,
+            "expected_steady_speed_m_s": 0.13585786437626904
+          },
+          {
+            "case": "off_centre_x_0.10",
+            "contact": true,
+            "displacement_mm": 5.411921008971542,
+            "rotation_deg": 1.2721169308730071,
+            "box_speed_end_m_s": 0.08416275592319387,
+            "expected_steady_speed_m_s": 0.09000000000000001
+          }
+        ],
+        "pass_condition": "every centred push moves the box >= default d_push; off-centre push turns it >= default theta_push",
+        "passed": true
+      },
+      "passed": true
+    },
+    "push_rate": {
+      "n_states": 200,
+      "frac_states_with_push": 0.925,
+      "mean_push_per_state": 9.285,
+      "push_per_state": {
+        "n": 200,
+        "mean": 9.285,
+        "q05": 0.0,
+        "q25": 5.0,
+        "q50": 10.0,
+        "q75": 13.0,
+        "q95": 18.0
+      },
+      "rates_all": {
+        "no_contact": 0.36041666666666666,
+        "graze": 0.2527083333333333,
+        "push": 0.386875
+      },
+      "rates_by_kind": {
+        "aimed": {
+          "no_contact": 0.20541666666666666,
+          "graze": 0.24708333333333332,
+          "push": 0.5475
+        },
+        "uniform": {
+          "no_contact": 0.5154166666666666,
+          "graze": 0.25833333333333336,
+          "push": 0.22625
+        }
+      },
+      "rates_logged_action": {
+        "no_contact": 0.33,
+        "graze": 0.175,
+        "push": 0.495
+      },
+      "pass_condition": "frac_states_with_push >= 0.9 and mean_push_per_state >= 6",
+      "passed": true
+    },
+    "push_label_diagnostic": {
+      "all": {
+        "n_contact": 3070,
+        "disagree_share_of_contacts": 0.21563517915309446,
+        "push_std_graze_ref": 662,
+        "graze_std_push_ref": 0,
+        "push_share_std": 0.8205211726384365,
+        "push_share_ref": 0.604885993485342
+      },
+      "aimed": {
+        "n_contact": 1907,
+        "disagree_share_of_contacts": 0.13214472994231777,
+        "push_std_graze_ref": 252,
+        "graze_std_push_ref": 0,
+        "push_share_std": 0.821185107498689,
+        "push_share_ref": 0.6890403775563713
+      },
+      "uniform": {
+        "n_contact": 1163,
+        "disagree_share_of_contacts": 0.352536543422184,
+        "push_std_graze_ref": 410,
+        "graze_std_push_ref": 0,
+        "push_share_std": 0.819432502149613,
+        "push_share_ref": 0.46689595872742906
+      },
+      "states_box_moving_without_contact_ge_d_push": 58,
+      "examples": [
+        {
+          "state": 2,
+          "action_index": 4,
+          "kind": "aimed",
+          "label_std": "push",
+          "label_ref": "graze",
+          "target_mm_deg": [
+            2.05,
+            1.859,
+            -0.026
+          ],
+          "reference_mm_deg": [
+            1.874,
+            1.633,
+            -0.001
+          ]
+        },
+        {
+          "state": 2,
+          "action_index": 13,
+          "kind": "uniform",
+          "label_std": "push",
+          "label_ref": "graze",
+          "target_mm_deg": [
+            1.874,
+            1.633,
+            -0.001
+          ],
+          "reference_mm_deg": [
+            1.874,
+            1.633,
+            -0.001
+          ]
+        },
+        {
+          "state": 2,
+          "action_index": 16,
+          "kind": "uniform",
+          "label_std": "push",
+          "label_ref": "graze",
+          "target_mm_deg": [
+            1.884,
+            1.662,
+            -0.001
+          ],
+          "reference_mm_deg": [
+            1.874,
+            1.633,
+            -0.001
+          ]
+        },
+        {
+          "state": 2,
+          "action_index": 17,
+          "kind": "uniform",
+          "label_std": "push",
+          "label_ref": "graze",
+          "target_mm_deg": [
+            1.874,
+            1.633,
+            -0.001
+          ],
+          "reference_mm_deg": [
+            1.874,
+            1.633,
+            -0.001
+          ]
+        },
+        {
+          "state": 2,
+          "action_index": 18,
+          "kind": "uniform",
+          "label_std": "push",
+          "label_ref": "graze",
+          "target_mm_deg": [
+            1.874,
+            1.633,
+            -0.001
+          ],
+          "reference_mm_deg": [
+            1.874,
+            1.633,
+            -0.001
+          ]
+        },
+        {
+          "state": 2,
+          "action_index": 19,
+          "kind": "uniform",
+          "label_std": "push",
+          "label_ref": "graze",
+          "target_mm_deg": [
+            1.906,
+            1.657,
+            -0.001
+          ],
+          "reference_mm_deg": [
+            1.874,
+            1.633,
+            -0.001
+          ]
+        },
+        {
+          "state": 2,
+          "action_index": 20,
+          "kind": "uniform",
+          "label_std": "push",
+          "label_ref": "graze",
+          "target_mm_deg": [
+            1.874,
+            1.633,
+            -0.001
+          ],
+          "reference_mm_deg": [
+            1.874,
+            1.633,
+            -0.001
+          ]
+        },
+        {
+          "state": 2,
+          "action_index": 21,
+          "kind": "uniform",
+          "label_std": "push",
+          "label_ref": "graze",
+          "target_mm_deg": [
+            1.874,
+            1.633,
+            -0.001
+          ],
+          "reference_mm_deg": [
+            1.874,
+            1.633,
+            -0.001
+          ]
+        }
+      ],
+      "passed": null
+    },
+    "contact_coverage": {
+      "n_transitions": 5000,
+      "contact_share": 0.4122,
+      "push_share": 0.3,
+      "graze_share": 0.1122,
+      "contacts_from_scripted": 1981,
+      "contacts_from_uniform": 80,
+      "pushes_from_scripted": 1472,
+      "pushes_from_uniform": 28,
+      "uniform_action_share": 0.1008,
+      "passed": null
+    },
+    "intervention_coverage": {
+      "measure": "action novelty given the state: mean distance (m/s) from the action to the 5 nearest actions at the 100 nearest pool states",
+      "tau": 0.023697748394227013,
+      "T": 0.3462574044157243,
+      "T_aimed": 0.2480974124809741,
+      "T_uniform": 0.583793738489871,
+      "R": 1.8227602061718708,
+      "n_behaviour_push_beyond_tau": 75,
+      "d_obs": {
+        "n": 1500,
+        "mean": 0.011764336138263323,
+        "q05": 0.005166004263339597,
+        "q25": 0.007533710943782161,
+        "q50": 0.0099123412894828,
+        "q75": 0.013141005215395992,
+        "q95": 0.023697748394227013
+      },
+      "d_int": {
+        "n": 1857,
+        "mean": 0.02274067455793629,
+        "q05": 0.0068747437360313695,
+        "q25": 0.01151372559095826,
+        "q50": 0.018067821252463617,
+        "q75": 0.028696290448229005,
+        "q95": 0.05817630069938447
+      },
+      "n_pool_transitions": 100000,
+      "n_pool_push": 30862,
+      "pool_push_share_from_uniform": 0.021774350333743763,
+      "pool_contacts_from_uniform": 1800,
+      "n_behaviour_push_smoke": 1500,
+      "n_push_interventions": 1857,
+      "earlier_measure_not_gated": {
+        "measure": "mean distance to the 5 nearest pool push transitions in standardised (s_t, a_t)",
+        "tau": 1.6958364592335549,
+        "T": 0.10931610123855681,
+        "T_aimed": 0.08599695585996955,
+        "T_uniform": 0.16574585635359115,
+        "R": 1.0925743664789573,
+        "n_behaviour_push_beyond_tau": 75,
+        "d_obs": {
+          "n": 1500,
+          "mean": 1.0921660320478521,
+          "q05": 0.70810222750943,
+          "q25": 0.8544627990690937,
+          "q50": 1.0205057705316607,
+          "q75": 1.2659854218854654,
+          "q95": 1.6958364592335549
+        },
+        "d_int": {
+          "n": 1857,
+          "mean": 1.205168814200918,
+          "q05": 0.7439302119109432,
+          "q25": 0.9415890727984211,
+          "q50": 1.1149784457267493,
+          "q75": 1.4245642893740853,
+          "q95": 1.923620749981936
+        }
+      },
+      "epsilon_near": 0.05,
+      "pass_condition": "T >= 0.25",
+      "passed": true
+    },
+    "policy_log_density": {
+      "logged_action_at_states": {
+        "n": 200,
+        "mean": 4.787510020543941,
+        "q05": 2.4507402851411393,
+        "q25": 4.543936609852417,
+        "q50": 5.259917110227063,
+        "q75": 5.664544459095448,
+        "q95": 5.889225729022801
+      },
+      "aimed": {
+        "all": {
+          "n": 2400,
+          "mean": 1.6752854146178924,
+          "q05": -0.5877866649021186,
+          "q25": -0.5876882116435714,
+          "q50": 1.1874890180776574,
+          "q75": 3.6841255451258443,
+          "q95": 5.454309141950381
+        },
+        "no_contact": {
+          "n": 493,
+          "mean": 0.6455043465181335,
+          "q05": -0.5877866649021186,
+          "q25": -0.5877866649009146,
+          "q50": -0.5775058790274425,
+          "q75": 1.823877249563031,
+          "q95": 4.383773085394651
+        },
+        "graze": {
+          "n": 593,
+          "mean": 1.5164632585532438,
+          "q05": -0.5877866649021186,
+          "q25": -0.5869340566671498,
+          "q50": 1.119828583869874,
+          "q75": 3.189626697872489,
+          "q95": 5.192269386071703
+        },
+        "push": {
+          "n": 1314,
+          "mean": 2.133324687920417,
+          "q05": -0.5877866649021186,
+          "q25": -0.5213058242896871,
+          "q50": 2.216627771786266,
+          "q75": 4.213342481410367,
+          "q95": 5.5877908019872535
+        }
+      },
+      "uniform": {
+        "all": {
+          "n": 2400,
+          "mean": 0.010977226204295384,
+          "q05": -0.5877866649021186,
+          "q25": -0.5877866649021186,
+          "q50": -0.5877866631065805,
+          "q75": -0.5587382282026767,
+          "q95": 4.091523678612321
+        },
+        "no_contact": {
+          "n": 1237,
+          "mean": -0.22071428642133237,
+          "q05": -0.5877866649021186,
+          "q25": -0.5877866649021186,
+          "q50": -0.5877866649006791,
+          "q75": -0.5875637059390277,
+          "q95": 2.85519692303829
+        },
+        "graze": {
+          "n": 620,
+          "mean": -0.17385386789167606,
+          "q05": -0.5877866649021186,
+          "q25": -0.5877866649021186,
+          "q50": -0.5877866648902398,
+          "q75": -0.5863391434939751,
+          "q95": 3.0370529166160374
+        },
+        "push": {
+          "n": 543,
+          "mean": 0.7498311478569728,
+          "q05": -0.5877866649021186,
+          "q25": -0.5877866423734968,
+          "q50": -0.5395912058970598,
+          "q75": 1.8488186213091637,
+          "q95": 5.0272202623806
+        }
+      },
+      "interventions": {
+        "all": {
+          "n": 4800,
+          "mean": 0.8431313204110938,
+          "q05": -0.5877866649021186,
+          "q25": -0.587786664902084,
+          "q50": -0.5825313308394016,
+          "q75": 2.3045979749674803,
+          "q95": 5.147075716524261
+        },
+        "no_contact": {
+          "n": 1730,
+          "mean": 0.02613298874581024,
+          "q05": -0.5877866649021186,
+          "q25": -0.5877866649021186,
+          "q50": -0.5877866645976897,
+          "q75": -0.5593139690672508,
+          "q95": 3.8641958510758885
+        },
+        "graze": {
+          "n": 1213,
+          "mean": 0.6524924272293771,
+          "q05": -0.5877866649021186,
+          "q25": -0.5877866649021172,
+          "q50": -0.5871422921714426,
+          "q75": 1.6460516745075975,
+          "q95": 4.797407315923196
+        },
+        "push": {
+          "n": 1857,
+          "mean": 1.7287813426029965,
+          "q05": -0.5877866649021186,
+          "q25": -0.5874680314428775,
+          "q50": 1.183751539640023,
+          "q75": 3.862392640663852,
+          "q95": 5.527778256259346
+        }
+      },
+      "pool_logged_actions": {
+        "all": {
+          "n": 100000,
+          "mean": 4.523922400604857,
+          "q05": 0.798507696217772,
+          "q25": 4.206596738602605,
+          "q50": 5.116729944525005,
+          "q75": 5.578946527881978,
+          "q95": 5.866984585868424
+        },
+        "no_contact": {
+          "n": 57539,
+          "mean": 4.336965735976292,
+          "q05": 0.798507696217772,
+          "q25": 3.9386259514066593,
+          "q50": 5.030047536706993,
+          "q75": 5.525885336694484,
+          "q95": 5.819566557923688
+        },
+        "graze": {
+          "n": 11599,
+          "mean": 4.33871478653622,
+          "q05": -0.5877866648625475,
+          "q25": 3.99247326627028,
+          "q50": 5.009146379237968,
+          "q75": 5.570968399390349,
+          "q95": 5.887377070327584
+        },
+        "push": {
+          "n": 30862,
+          "mean": 4.942091107806111,
+          "q05": 2.928438970252037,
+          "q25": 4.610662490428324,
+          "q50": 5.283873379827572,
+          "q75": 5.669612769017838,
+          "q95": 5.8938467031234545
+        }
+      },
+      "log_uniform_density": 2.4079456086518722,
+      "passed": null
+    },
+    "shadow_actions": {
+      "byte_identical_with_and_without": {
+        "obs": true,
+        "goal": true,
+        "action": true,
+        "action_uniform": true,
+        "state": true,
+        "gap": true,
+        "contact": true,
+        "target": true,
+        "reference": true
+      },
+      "uniform_share_logged": 0.1008,
+      "uniform_share_shadow": 0.1102,
+      "shadow_equals_logged_share": 0.0,
+      "ks_tests_delta_vs_previous_action": {
+        "dx": {
+          "ks_statistic": 0.017373737373737375,
+          "p_value": 0.44384732149591155
+        },
+        "dy": {
+          "ks_statistic": 0.014343434343434436,
+          "p_value": 0.6885848554417517
+        },
+        "norm": {
+          "ks_statistic": 0.016767676767676765,
+          "p_value": 0.4896994668746615
+        }
+      },
+      "note": "KS tests treat the two samples as independent; they are paired by state, which makes the test conservative for equal distributions",
+      "pass_condition": "byte-identical transitions; shadow and logged proportions and (a - a_prev) distributions match (KS p >= 0.01 on each)",
+      "passed": true
+    },
+    "positive_control_feasibility": {
+      "target_std_used": [
+        0.0031174764652180404,
+        0.0032383013035719548,
+        0.026171844153777588
+      ],
+      "target_std_source": "box target on the 50 smoke episodes (no training split exists yet), with the design's floors",
+      "n_obs_transitions": 5000,
+      "n_push_interventions": 1857,
+      "policy_draws_per_state": 100,
+      "D_obs": 0.06550947686386115,
+      "D_obs_on_contact_transitions": 0.14620403000299043,
+      "D_logged_at_test_like_states": 0.10441006396925333,
+      "D_int": 0.5424097862862248,
+      "D_int_over_D_obs": 8.279867467319827,
+      "reading": "expected relative gap at matched loss is about p^2 * D_int / E_int(mlp) with p^2 * D_obs <= V* - L_best(mlp); so it is at least 20% when E_int(mlp) <= 5 * (D_int / D_obs) * (V* - L_best(mlp))",
+      "passed": null
+    },
+    "compute": {
+      "wall_s_smoke_episodes": 1.6652360409498215,
+      "wall_s_coverage_pool": 33.614654458127916,
+      "wall_s_test_like_states_with_25_actions": 3.0510232909582555,
+      "wall_s_shadow_regeneration": 1.546051542274654,
+      "wall_s_positive_control_feasibility": 86.256928417366,
+      "control_steps_in_episodes": 105000,
+      "ms_per_episode_control_step": 0.3359989571340737,
+      "projected_s_train_plus_validation": 36.959885284748104,
+      "design_estimate": "data generation is a few CPU-minutes (DESIGN.md, Compute)",
+      "training_time": "milestone 2",
+      "passed": null
+    }
+  }
+}

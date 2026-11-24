@@ -32,6 +32,8 @@ POLICY_EPSILON = 0.2
 # in freeze 1. Never 0.
 POLICY_NEAR_BOX_GAP_M = 0.015
 POLICY_EPSILON_NEAR_LADDER: tuple[float, ...] = (0.2, 0.05, 0.02)
+# Current value. Phase 0 attempt 0 used 0.2 and failed intervention coverage (attempt 0 record).
+POLICY_EPSILON_NEAR = 0.05
 PUSHER_START_MIN_DIST_M = 0.05
 
 # Splits.
@@ -62,10 +64,13 @@ SMOKE_PLANTED_NOISE_RATIO = 1.5  # noise std on push transitions, noisy-b over n
 # intervention speed must be at least this multiple of the force needed to start the box sliding.
 SMOKE_MIN_PUSH_FORCE_MARGIN = 2.0
 # Intervention coverage (docs/SMOKE_TEST.md): a pool of behaviour episodes from smoke seeds, the
-# size of the training split. tau is this quantile of the behaviour pushes' kNN distances; pass if
-# at least SMOKE_MIN_COVERAGE_TAIL_SHARE of push interventions lie farther than tau.
+# size of the training split. A pair's distance is the mean distance from its action to the
+# SMOKE_COVERAGE_NEIGHBOURS nearest actions taken at its SMOKE_COVERAGE_STATE_NEIGHBOURS nearest pool
+# states. tau is this quantile of the behaviour pushes' distances; pass if at least
+# SMOKE_MIN_COVERAGE_TAIL_SHARE of push interventions lie farther than tau.
 N_SMOKE_COVERAGE_POOL_EPISODES = 1_000
 SMOKE_COVERAGE_NEIGHBOURS = 5
+SMOKE_COVERAGE_STATE_NEIGHBOURS = 100
 SMOKE_COVERAGE_TAIL_QUANTILE = 0.95
 SMOKE_MIN_COVERAGE_TAIL_SHARE = 0.25
 
@@ -139,3 +144,51 @@ G1_MIN_SEEDS_PER_ARCHITECTURE = 6  # of 10; fewer matched seeds left drops the a
 G1_MIN_SEEDS_SECONDARY_WIDTHS = 3  # of 5, at the small and large widths
 G2_DECOUPLED_BELOW = 0.50
 G2_REFUTED_AT_OR_ABOVE = 0.80
+
+# ---------------------------------------------------------------------------------------------
+# Implementation settings chosen in Phase 0 (milestone 1). Physical values of the scene live in
+# assets/pushing.xml; the ones code needs are repeated here and tests check the two agree.
+# ---------------------------------------------------------------------------------------------
+
+# Scene (assets/pushing.xml).
+BOX_HEIGHT_M = 0.05
+BOX_MASS_KG = 0.15
+PUSHER_HEIGHT_M = 0.04
+BOX_SLIDE_FRICTIONLOSS_N = 0.1  # on each of box_x and box_y
+BOX_HINGE_FRICTIONLOSS_NM = 0.004  # on box_yaw
+PUSHER_BOX_FRICTION = 0.3
+ACTUATOR_FORCE_LIMIT_N = 2.0  # velocity actuators' forcerange is [-2, 2] N
+
+# Behaviour policy regions and controller (policy.py). The goal is a position only.
+BOX_START_XY_RANGE_M = (-0.10, 0.10)  # box start x and y, each uniform; yaw uniform on (-pi, pi]
+PUSHER_START_XY_RANGE_M = (-0.25, 0.25)  # pusher start x and y, redrawn until the gap is >= 5 cm
+GOAL_XY_RANGE_M = (-0.20, 0.20)  # goal x and y, each uniform
+GOAL_MIN_DIST_M = 0.05  # a goal is redrawn until it is at least this far from the box centre
+GOAL_REACHED_DIST_M = 0.02  # box centre this close to the goal: a new goal is drawn
+POLICY_APPROACH_CLEARANCE_M = 0.02  # approach point: this far behind the face, surface to surface
+POLICY_ORBIT_CLEARANCE_M = 0.02  # orbit radius: box half-diagonal + pusher radius + this
+POLICY_ORBIT_STEP_DEG = 45.0  # orbit waypoint: this far round the box per step at most
+POLICY_ORBIT_SWITCH_DEG = 30.0  # within this angle of the push side, go straight to the approach point
+POLICY_APPROACH_GAIN = 0.7  # fraction of the distance to the waypoint commanded per control step
+POLICY_APPROACH_MAX_SPEED_M_S = 0.12
+POLICY_PUSH_LATERAL_TOL_M = 0.01  # push mode only while the pusher is this close to the push line
+POLICY_PUSH_LATERAL_TIME_S = 0.3  # lateral correction in push mode: offset / this time
+POLICY_PUSH_BEHIND_TOL_M = 0.005  # push mode allows the pusher this far past the face (penetration)
+
+# Seeds (episodes.py). Episode seed ranges per split, [start, stop), disjoint. The test seed is
+# never derived before freeze 2 (DESIGN.md, Splits), so it has no range here.
+SEED_RANGE_TRAIN = (1_000_000, 2_000_000)
+SEED_RANGE_VALIDATION = (2_000_000, 3_000_000)
+SEED_RANGE_SMOKE = (3_000_000, 4_000_000)
+SEED_RANGE_PILOT = (4_000_000, 5_000_000)
+# Inside the smoke range: Phase 0 attempt k (one per epsilon_near ladder value) starts at
+# SEED_RANGE_SMOKE[0] + k * SMOKE_ATTEMPT_STRIDE, so a rerun uses new smoke seeds. Attempt 0 ran at
+# epsilon_near 0.2; attempt 1 at 0.05; attempt 2 at 0.05 with the push label against the no-contact
+# reference.
+SMOKE_ATTEMPT = 2
+SMOKE_ATTEMPT_STRIDE = 300_000
+SMOKE_EPISODES_OFFSET = 0  # the 50 smoke episodes
+SMOKE_POOL_OFFSET = 100_000  # the 1,000-episode coverage pool
+SMOKE_STATES_OFFSET = 200_000  # one fresh episode per test-like state, skipped seeds included
+# Positive-control feasibility: policy draws per state for m (DESIGN.md, Controls).
+FEASIBILITY_POLICY_DRAWS = 100

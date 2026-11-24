@@ -1,0 +1,64 @@
+{
+  "measure": "action novelty given the state: mean distance (m/s) from the action to the 5 nearest actions at the 100 nearest pool states",
+  "tau": 0.0480788031503494,
+  "T": 0.12335143522110163,
+  "T_aimed": 0.011162179908076166,
+  "T_uniform": 0.2853080568720379,
+  "R": 1.7820293788927732,
+  "n_behaviour_push_beyond_tau": 88,
+  "d_obs": {
+    "n": 1756,
+    "mean": 0.017709868765428335,
+    "q05": 0.0058937174834668175,
+    "q25": 0.008769834417758311,
+    "q50": 0.01268987325089633,
+    "q75": 0.02066743567791872,
+    "q95": 0.0480788031503494
+  },
+  "d_int": {
+    "n": 2578,
+    "mean": 0.027012627476609655,
+    "q05": 0.007883701877781677,
+    "q25": 0.014209370822707422,
+    "q50": 0.022613726947522804,
+    "q75": 0.03554830460990492,
+    "q95": 0.06135706644914027
+  },
+  "n_pool_transitions": 100000,
+  "n_pool_push": 33387,
+  "pool_push_share_from_uniform": 0.15772606104172282,
+  "pool_contacts_from_uniform": 6126,
+  "n_behaviour_push_smoke": 1756,
+  "n_push_interventions": 2578,
+  "earlier_measure_not_gated": {
+    "measure": "mean distance to the 5 nearest pool push transitions in standardised (s_t, a_t)",
+    "tau": 2.0823958085182723,
+    "T": 0.06633048875096974,
+    "T_aimed": 0.04727511490479317,
+    "T_uniform": 0.0938388625592417,
+    "R": 0.9831813011491736,
+    "n_behaviour_push_beyond_tau": 88,
+    "d_obs": {
+      "n": 1756,
+      "mean": 1.3111344961952505,
+      "q05": 0.7665660039807408,
+      "q25": 0.9958830830319824,
+      "q50": 1.2590396102016452,
+      "q75": 1.5489971237309734,
+      "q95": 2.0823958085182723
+    },
+    "d_int": {
+      "n": 2578,
+      "mean": 1.3142207142021978,
+      "q05": 0.787946678365492,
+      "q25": 1.0129537994964006,
+      "q50": 1.237864202156402,
+      "q75": 1.5230528717418017,
+      "q95": 2.1823096824389316
+    }
+  },
+  "epsilon_near": 0.2,
+  "pass_condition": "T >= 0.25",
+  "passed": false,
+  "note": "attempt 0 data (epsilon_near 0.2) rescored with the gated measure adopted after attempt 0"
+}
