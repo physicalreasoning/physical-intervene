@@ -1,6 +1,6 @@
 <!-- Planar pushing scene (docs/DESIGN.md, Environment).
 Fixed by the design: 2 ms timestep, 10 x 10 cm box on slide x, slide y and hinge z joints, table
-resistance as frictionloss on those joints, cylindrical pusher of radius 1 cm and mass 0.1 kg on
+resistance as frictionloss on those joints, round pusher (a vertical capsule) of radius 1 cm and mass 0.1 kg on
 slide x and slide y joints driven by velocity actuators with kv = 10 N s/m.
 Implementation settings chosen in Phase 0 are commented where they are set. -->
 <mujoco model="planar_pushing">

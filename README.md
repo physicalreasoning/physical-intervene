@@ -9,7 +9,7 @@ models with matched validation loss predict the same outcome under an action the
 
 ## Task 1: planar pushing
 
-A cylindrical pusher pushes a box on a table in MuJoCo. The simulator state can be saved,
+A round pusher pushes a box on a table in MuJoCo. The simulator state can be saved,
 restored and re-run under any action, so every intervention has an exact, cheap ground truth.
 Contact between pusher and box is the hard case: rare in routine data, and where the action
 matters most.

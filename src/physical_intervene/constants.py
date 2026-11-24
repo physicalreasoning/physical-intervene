@@ -32,6 +32,8 @@ POLICY_EPSILON = 0.2
 # in freeze 1. Never 0.
 POLICY_NEAR_BOX_GAP_M = 0.015
 POLICY_EPSILON_NEAR_LADDER: tuple[float, ...] = (0.2, 0.05, 0.02)
+# Current value. Phase 0 attempt 0 used 0.2 and failed intervention coverage (attempt 0 record).
+POLICY_EPSILON_NEAR = 0.05
 PUSHER_START_MIN_DIST_M = 0.05
 
 # Splits.
@@ -62,10 +64,13 @@ SMOKE_PLANTED_NOISE_RATIO = 1.5  # noise std on push transitions, noisy-b over n
 # intervention speed must be at least this multiple of the force needed to start the box sliding.
 SMOKE_MIN_PUSH_FORCE_MARGIN = 2.0
 # Intervention coverage (docs/SMOKE_TEST.md): a pool of behaviour episodes from smoke seeds, the
-# size of the training split. tau is this quantile of the behaviour pushes' kNN distances; pass if
-# at least SMOKE_MIN_COVERAGE_TAIL_SHARE of push interventions lie farther than tau.
+# size of the training split. A pair's distance is the mean distance from its action to the
+# SMOKE_COVERAGE_NEIGHBOURS nearest actions taken at its SMOKE_COVERAGE_STATE_NEIGHBOURS nearest pool
+# states. tau is this quantile of the behaviour pushes' distances; pass if at least
+# SMOKE_MIN_COVERAGE_TAIL_SHARE of push interventions lie farther than tau.
 N_SMOKE_COVERAGE_POOL_EPISODES = 1_000
 SMOKE_COVERAGE_NEIGHBOURS = 5
+SMOKE_COVERAGE_STATE_NEIGHBOURS = 100
 SMOKE_COVERAGE_TAIL_QUANTILE = 0.95
 SMOKE_MIN_COVERAGE_TAIL_SHARE = 0.25
 
@@ -177,8 +182,10 @@ SEED_RANGE_VALIDATION = (2_000_000, 3_000_000)
 SEED_RANGE_SMOKE = (3_000_000, 4_000_000)
 SEED_RANGE_PILOT = (4_000_000, 5_000_000)
 # Inside the smoke range: Phase 0 attempt k (one per epsilon_near ladder value) starts at
-# SEED_RANGE_SMOKE[0] + k * SMOKE_ATTEMPT_STRIDE, so a rerun uses new smoke seeds.
-SMOKE_ATTEMPT = 0
+# SEED_RANGE_SMOKE[0] + k * SMOKE_ATTEMPT_STRIDE, so a rerun uses new smoke seeds. Attempt 0 ran at
+# epsilon_near 0.2; attempt 1 at 0.05; attempt 2 at 0.05 with the push label against the no-contact
+# reference.
+SMOKE_ATTEMPT = 2
 SMOKE_ATTEMPT_STRIDE = 300_000
 SMOKE_EPISODES_OFFSET = 0  # the 50 smoke episodes
 SMOKE_POOL_OFFSET = 100_000  # the 1,000-episode coverage pool

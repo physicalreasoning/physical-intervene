@@ -57,6 +57,10 @@ def test_epsilon_near_ladder() -> None:
     assert all(e > 0.0 for e in ladder)
     assert abs(c.POLICY_NEAR_BOX_GAP_M - c.ACTION_MAX_SPEED_M_S * c.CONTROL_STEP_S) < 1e-12
     assert c.POLICY_NEAR_BOX_GAP_M >= c.TEST_STATE_MAX_GAP_M
+    assert c.POLICY_EPSILON_NEAR in ladder
+    # Each ladder value is its own Phase 0 attempt, on its own smoke seeds.
+    assert c.SMOKE_ATTEMPT >= ladder.index(c.POLICY_EPSILON_NEAR)
+    assert c.SMOKE_COVERAGE_STATE_NEIGHBOURS > c.SMOKE_COVERAGE_NEIGHBOURS
 
 
 def test_push_force_margin_is_above_one() -> None:

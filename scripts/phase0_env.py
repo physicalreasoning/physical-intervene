@@ -1,8 +1,9 @@
 """Phase 0, milestone 1: generate the smoke data and run the environment checks.
 
-    uv run python scripts/phase0_env.py [--docker-replay results/phase0/docker_replay.json]
+    uv run python scripts/phase0_env.py [--docker-replay results/phase0/attemptK/docker_replay.json]
 
-Writes data/smoke/*.npz (gitignored), results/phase0/env_checks.json and results/phase0/plots/.
+Writes data/smoke/attemptK/*.npz (gitignored), results/phase0/attemptK/env_checks.json and
+results/phase0/attemptK/plots/, for K = constants.SMOKE_ATTEMPT.
 Simulator and scripted policy only: no model of any kind is built, trained or run.
 """
 
@@ -32,8 +33,16 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA = ROOT / "data" / "smoke"
-OUT = ROOT / "results" / "phase0"
+# Written after reading the attempt's threshold plot (top row); checked again on every attempt.
+THRESHOLD_DECISION = (
+    "defaults kept (d_push 2 mm, theta_push 1 deg). Against the no-contact reference, 13% of contacts "
+    "change nothing (a spike at zero) and the rest form a continuum peaking at 3 to 5 mm. The only gap, "
+    "between zero and about 0.01 mm, separates no-effect touches from all others, not grazes from "
+    "pushes, so the rule has no gap to move to. 2 mm lies near the median of contact effects"
+)
+# Each Phase 0 attempt (constants.SMOKE_ATTEMPT) keeps its own data and record.
+DATA = ROOT / "data" / "smoke" / f"attempt{c.SMOKE_ATTEMPT}"
+OUT = ROOT / "results" / "phase0" / f"attempt{c.SMOKE_ATTEMPT}"
 
 
 def timed(fn, *args, **kw):
@@ -57,8 +66,8 @@ def plot_thresholds(states: dict, path: Path) -> None:
     fig, ax = plt.subplots(2, 3, figsize=(15, 9))
     for row, (dd, rr, title) in enumerate(
         (
-            (disp, rot, "total motion (design label)"),
-            (disp_ref, rot_ref, "minus no-contact reference (diagnostic)"),
+            (disp_ref, rot_ref, "against no-contact reference (design label)"),
+            (disp, rot, "total motion (earlier rule, reported)"),
         )
     ):
         floor = 1e-4
@@ -91,7 +100,7 @@ def plot_thresholds(states: dict, path: Path) -> None:
 
 
 def plot_coverage_and_density(states: dict, pool: dict, path: Path) -> None:
-    lab = I.label(states["contact"], states["target"])
+    lab = I.state_label(states)
     ld = states["log_density"]
     kinds = np.broadcast_to(states["kinds"], lab.shape)
     fig, ax = plt.subplots(figsize=(8, 5))
@@ -156,12 +165,9 @@ def main() -> int:
     results: dict = {}
     results["bit_exact_replay"] = replay_entry
     results["push_thresholds"] = checks.push_thresholds(states)
-    # Read from plots/push_thresholds.png (milestone 1): contact displacements form one mode at 5 to 8 mm
-    # with a long left tail and no gap; 2 mm lies on the lower shoulder, not through the mode.
-    results["push_thresholds"]["decision"] = (
-        "defaults kept (d_push 2 mm, theta_push 1 deg): no gap between grazes and pushes exists to move "
-        "them to, and d_push lies below the bulk of displacements"
-    )
+    # DESIGN.md rule: move the defaults only to a gap between grazes and pushes that they cut above.
+    # Read from plots/push_thresholds.png (top row) before this text was written; see the report.
+    results["push_thresholds"]["decision"] = THRESHOLD_DECISION
     results["pusher_can_move_box"] = checks.pusher_can_move_box()
     results["push_rate"] = checks.push_rate(states)
     results["push_label_diagnostic"] = checks.push_label_diagnostic(states)

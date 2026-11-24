@@ -8,7 +8,7 @@ import pytest
 from physical_intervene import constants as c
 from physical_intervene import episodes as E
 from physical_intervene import policy
-from physical_intervene.interventions import label, label_vs_reference
+from physical_intervene.interventions import label, label_total_motion
 from physical_intervene.sim import Sim
 
 A = c.ACTION_MAX_SPEED_M_S
@@ -112,20 +112,25 @@ def test_stream_keys_are_unique() -> None:
 
 def test_push_label_on_hand_built_push_and_graze() -> None:
     sim = Sim()
+    at_rest = np.zeros(3)  # no-contact reference of a box at rest: it does not move
     # Push: pusher 1 mm behind the middle of the -x face, driven into it at 0.1 m/s.
     sim.reset(np.zeros(2), 0.0, np.array([-(H + c.PUSHER_RADIUS_M + 0.001), 0.0]))
     q0 = sim.qpos
     contact = sim.step(np.array([0.10, 0.0]))
     push_target = np.array([*(sim.qpos[:2] - q0[:2]), sim.qpos[2] - q0[2]])
-    assert contact and label(contact, push_target) == 2
+    assert contact and label(contact, push_target, at_rest) == 2
     # Graze: pusher just touching the face, sliding along it.
     sim.reset(np.zeros(2), 0.0, np.array([-(H + c.PUSHER_RADIUS_M) + 0.0002, -0.03]))
     q0 = sim.qpos
     contact = sim.step(np.array([0.0, 0.05]))
     graze_target = np.array([*(sim.qpos[:2] - q0[:2]), sim.qpos[2] - q0[2]])
-    assert contact and label(contact, graze_target) == 1
-    assert label(False, push_target) == 0
-    # A box already sliding: the design label says push, the reference label says graze.
+    assert contact and label(contact, graze_target, at_rest) == 1
+    assert label(False, push_target, at_rest) == 0
+    # A box already sliding 4 mm in the step, touched lightly: a graze against its reference,
+    # though its total motion (the earlier rule) is over d_push.
     sliding = np.array([0.004, 0.0, 0.0])
-    assert label(True, sliding) == 2
-    assert label_vs_reference(True, sliding + np.array([0.0002, 0.0, 0.0]), sliding) == 1
+    touched = sliding + np.array([0.0002, 0.0, 0.0])
+    assert label(True, touched, sliding) == 1
+    assert label_total_motion(True, touched) == 2
+    # The same box pushed hard enough to change its motion by more than d_push: a push.
+    assert label(True, sliding + np.array([0.003, 0.0, 0.0]), sliding) == 2

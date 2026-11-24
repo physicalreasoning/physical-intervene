@@ -141,11 +141,34 @@ def run_episode(sim: Sim, seed: int, shadow: bool = True, epsilon_near: float = 
         rows.append(row)
     out = {k: np.array([r[k] for r in rows]) for k in rows[0]}
     out["obs"] = np.concatenate([out["obs"], sim.obs()[None]], axis=0)
+    out["reference"] = no_contact_references(sim, out["state"])
     out["seed"] = np.int64(seed)
     return out
 
 
-TRANSITION_KEYS = ("obs", "goal", "action", "action_uniform", "state", "gap", "contact", "target")
+def no_contact_references(sim: Sim, states: np.ndarray) -> np.ndarray:
+    """The box target of each step rerun from its saved state with contacts disabled (the push label's
+    reference, DESIGN.md Environment). Run after the episode, so the transitions are unchanged."""
+    out = np.empty((len(states), 3))
+    for t, state in enumerate(states):
+        sim.set_state(state)
+        q0 = sim.qpos
+        sim.step_without_contact(np.zeros(2))
+        out[t] = box_target(q0, sim.qpos)
+    return out
+
+
+TRANSITION_KEYS = (
+    "obs",
+    "goal",
+    "action",
+    "action_uniform",
+    "state",
+    "gap",
+    "contact",
+    "target",
+    "reference",
+)
 
 
 def generate(

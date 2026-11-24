@@ -18,8 +18,10 @@ from physical_intervene.interventions import (
     KIND_LOGGED,
     KIND_UNIFORM,
     LABELS,
+    effect,
     label,
-    label_vs_reference,
+    label_total_motion,
+    state_label,
 )
 from physical_intervene.sim import Sim, box_target
 
@@ -66,24 +68,31 @@ def replay(states: dict) -> dict:
 
 
 def push_thresholds(states: dict) -> dict:
-    """Displacement and rotation of every contact intervention (logged action excluded)."""
+    """Effect of every contact intervention against the no-contact reference (logged action excluded),
+    with total motion beside it."""
     contact = states["contact"][:, 1:]
     target = states["target"][:, 1:][contact]
-    disp_mm = 1e3 * np.hypot(target[:, 0], target[:, 1])
-    rot_deg = np.rad2deg(np.abs(target[:, 2]))
-    lab = label(np.ones(len(target), bool), target)
+    ref = np.broadcast_to(states["reference"][:, None, :], states["target"][:, 1:].shape)[contact]
+    eff = effect(target, ref)
+    disp_mm = 1e3 * np.hypot(eff[:, 0], eff[:, 1])
+    rot_deg = np.rad2deg(np.abs(eff[:, 2]))
+    lab = label(np.ones(len(target), bool), target, ref)
     d, th = c.PUSH_MIN_DISPLACEMENT_M * 1e3, c.PUSH_MIN_ROTATION_DEG
     near = (disp_mm >= 0.5 * d) & (disp_mm < 2 * d)
+    total_mm = 1e3 * np.hypot(target[:, 0], target[:, 1])
     return {
         "n_contact_interventions": int(contact.sum()),
         "d_push_mm": d,
         "theta_push_deg": th,
         "graze_share_of_contacts": float(np.mean(lab == LABEL_GRAZE)),
-        "displacement_mm": _q(disp_mm),
-        "rotation_deg": _q(rot_deg),
+        "displacement_vs_reference_mm": _q(disp_mm),
+        "rotation_vs_reference_deg": _q(rot_deg),
+        "share_with_no_effect_at_all": float(np.mean((disp_mm < 1e-6) & (rot_deg < 1e-6))),
         "share_displacement_within_factor_2_of_d_push": float(near.mean()),
         "share_below_d_push_but_rotated_at_least_theta_push": float(np.mean((disp_mm < d) & (rot_deg >= th))),
-        "pass_condition": "defaults kept unless the plots show they cut through the bulk of pushes",
+        "total_motion_displacement_mm": _q(total_mm),
+        "pass_condition": "move the defaults only to a gap between grazes and pushes that they cut above; "
+        "keep them otherwise",
         "passed": None,  # decided from the plots and written in the record by the script
     }
 
@@ -174,7 +183,7 @@ def _push_case(sim: Sim, action: np.ndarray, name: str, v: float, f_resist_dir: 
 
 
 def push_rate(states: dict) -> dict:
-    lab = label(states["contact"], states["target"])[:, 1:]
+    lab = state_label(states)[:, 1:]
     n_push = (lab == LABEL_PUSH).sum(axis=1)
     frac_with_push = float(np.mean(n_push >= 1))
     mean_push = float(n_push.mean())
@@ -183,7 +192,7 @@ def push_rate(states: dict) -> dict:
     for name, k in (("aimed", KIND_AIMED), ("uniform", KIND_UNIFORM)):
         sub = lab[:, kinds == k]
         by_kind[name] = {lab_name: float(np.mean(sub == j)) for j, lab_name in enumerate(LABELS)}
-    logged = label(states["contact"][:, 0], states["target"][:, 0])
+    logged = state_label(states)[:, 0]
     return {
         "n_states": int(len(lab)),
         "frac_states_with_push": frac_with_push,
@@ -202,9 +211,10 @@ def push_rate(states: dict) -> dict:
 
 
 def push_label_diagnostic(states: dict, n_examples: int = 8) -> dict:
-    """Standard label against the no-contact-reference label (DESIGN.md design-log issue on moving boxes)."""
-    std = label(states["contact"], states["target"])[:, 1:]
-    ref = label_vs_reference(states["contact"], states["target"], states["reference"][:, None, :])[:, 1:]
+    """The earlier total-motion label ("std") against the design's label ("ref", against the no-contact
+    reference): how many contacts the change relabels."""
+    std = label_total_motion(states["contact"], states["target"])[:, 1:]
+    ref = state_label(states)[:, 1:]
     kinds = states["kinds"][1:]
     out = {}
     for name, mask in (
@@ -253,7 +263,7 @@ def _mm_deg(t: np.ndarray) -> list[float]:
 
 def contact_coverage(eps: dict) -> dict:
     contact, unif = eps["contact"], eps["action_uniform"]
-    lab = label(contact, eps["target"])
+    lab = label(contact, eps["target"], eps["reference"])
     n = contact.size
     return {
         "n_transitions": int(n),
@@ -274,66 +284,82 @@ def contact_coverage(eps: dict) -> dict:
 
 def _flat_transitions(eps: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     x = np.concatenate([eps["obs"][:, :-1], eps["action"]], axis=-1).reshape(-1, 13)
-    lab = label(eps["contact"], eps["target"]).reshape(-1)
+    lab = label(eps["contact"], eps["target"], eps["reference"]).reshape(-1)
     return x, lab, eps["action_uniform"].reshape(-1)
 
 
 def intervention_coverage(pool: dict, smoke: dict, states: dict) -> dict:
+    """Tail share T of push interventions whose action is unusual for their state (SMOKE_TEST.md).
+
+    Gated distance: mean distance (m/s) from the action to the 5 nearest actions taken at the pair's
+    100 nearest pool states (any outcome; states standardised on the pool). Also reported, not
+    gated: the earlier distance, mean distance to the 5 nearest pool pushes in standardised (s, a).
+    """
     x_pool, lab_pool, unif_pool = _flat_transitions(pool)
-    mu, sd = x_pool.mean(axis=0), x_pool.std(axis=0)
-    sd = np.where(sd > 0, sd, 1.0)
-    tree = cKDTree((x_pool[lab_pool == LABEL_PUSH] - mu) / sd)
-    k = c.SMOKE_COVERAGE_NEIGHBOURS
-
-    def knn_mean(x: np.ndarray) -> np.ndarray:
-        d, _ = tree.query((x - mu) / sd, k=k)
-        return d.mean(axis=1)
-
     x_smoke, lab_smoke, _ = _flat_transitions(smoke)
-    d_obs = knn_mean(x_smoke[lab_smoke == LABEL_PUSH])
-    tau = float(np.quantile(d_obs, c.SMOKE_COVERAGE_TAIL_QUANTILE))
+    x_obs = x_smoke[lab_smoke == LABEL_PUSH]
 
-    lab_int = label(states["contact"], states["target"])[:, 1:]
+    lab_int = state_label(states)[:, 1:]
     kinds = np.broadcast_to(states["kinds"][1:], lab_int.shape)
     obs = np.broadcast_to(states["obs"][:, None, :], (*lab_int.shape, 11))
-    x_int = np.concatenate([obs, states["actions"][:, 1:]], axis=-1)
+    x_int_all = np.concatenate([obs, states["actions"][:, 1:]], axis=-1)
     push = lab_int == LABEL_PUSH
-    d_int = knn_mean(x_int[push])
-    k_int = kinds[push]
-    tail = d_int > tau
-    t_share = float(tail.mean())
+    x_int, k_int = x_int_all[push], kinds[push]
 
-    def action_share(x: np.ndarray) -> np.ndarray:
-        """Share of the squared distance to the 5 neighbours that comes from the 2 action dimensions."""
-        z = (x - mu) / sd
-        _, idx = tree.query(z, k=k)
-        diff2 = (tree.data[idx] - z[:, None, :]) ** 2
-        return diff2[..., 11:].sum(axis=(1, 2)) / diff2.sum(axis=(1, 2))
+    mu, sd = x_pool.mean(axis=0), x_pool.std(axis=0)
+    sd = np.where(sd > 0, sd, 1.0)
+    k = c.SMOKE_COVERAGE_NEIGHBOURS
 
-    share_int = action_share(x_int[push])
-    share_obs = action_share(x_smoke[lab_smoke == LABEL_PUSH])
+    # Gated: action novelty given the state.
+    state_tree = cKDTree((x_pool[:, :11] - mu[:11]) / sd[:11])
+    pool_actions = x_pool[:, 11:]
+
+    def action_given_state(x: np.ndarray) -> np.ndarray:
+        _, idx = state_tree.query((x[:, :11] - mu[:11]) / sd[:11], k=c.SMOKE_COVERAGE_STATE_NEIGHBOURS)
+        d = np.linalg.norm(pool_actions[idx] - x[:, None, 11:], axis=-1)
+        return np.sort(d, axis=1)[:, :k].mean(axis=1)
+
+    gated = _tail_share(action_given_state(x_obs), action_given_state(x_int), k_int)
+
+    # Reported: the earlier distance in standardised (s, a) to the pool's push transitions.
+    push_tree = cKDTree((x_pool[lab_pool == LABEL_PUSH] - mu) / sd)
+
+    def joint(x: np.ndarray) -> np.ndarray:
+        return push_tree.query((x - mu) / sd, k=k)[0].mean(axis=1)
+
+    earlier = _tail_share(joint(x_obs), joint(x_int), k_int)
     return {
+        "measure": "action novelty given the state: mean distance (m/s) from the action to the "
+        f"{k} nearest actions at the {c.SMOKE_COVERAGE_STATE_NEIGHBOURS} nearest pool states",
+        **gated,
         "n_pool_transitions": int(len(x_pool)),
         "n_pool_push": int(np.sum(lab_pool == LABEL_PUSH)),
         "pool_push_share_from_uniform": float(np.mean(unif_pool[lab_pool == LABEL_PUSH])),
-        "n_behaviour_push_smoke": int(len(d_obs)),
-        "n_behaviour_push_beyond_tau": int(np.sum(d_obs > tau)),
-        "n_push_interventions": int(len(d_int)),
-        "tau": tau,
-        "T": t_share,
-        "T_aimed": float(tail[k_int == KIND_AIMED].mean()),
-        "T_uniform": float(tail[k_int == KIND_UNIFORM].mean()),
-        "R": float(np.median(d_int) / np.median(d_obs)),
-        "d_obs": _q(d_obs),
-        "d_int": _q(d_int),
-        "diagnostic_action_share_of_sq_distance": {
-            "interventions": _q(share_int),
-            "behaviour": _q(share_obs),
-            "action_dims_share_if_equal": 2 / 13,
+        "pool_contacts_from_uniform": int(np.sum(pool["contact"] & pool["action_uniform"])),
+        "n_behaviour_push_smoke": int(len(x_obs)),
+        "n_push_interventions": int(len(x_int)),
+        "earlier_measure_not_gated": {
+            "measure": f"mean distance to the {k} nearest pool push transitions in standardised (s_t, a_t)",
+            **earlier,
         },
         "epsilon_near": policy.EPSILON_NEAR,
         "pass_condition": f"T >= {c.SMOKE_MIN_COVERAGE_TAIL_SHARE}",
-        "passed": bool(t_share >= c.SMOKE_MIN_COVERAGE_TAIL_SHARE),
+        "passed": bool(gated["T"] >= c.SMOKE_MIN_COVERAGE_TAIL_SHARE),
+    }
+
+
+def _tail_share(d_obs: np.ndarray, d_int: np.ndarray, kinds: np.ndarray) -> dict:
+    tau = float(np.quantile(d_obs, c.SMOKE_COVERAGE_TAIL_QUANTILE))
+    tail = d_int > tau
+    return {
+        "tau": tau,
+        "T": float(tail.mean()),
+        "T_aimed": float(tail[kinds == KIND_AIMED].mean()),
+        "T_uniform": float(tail[kinds == KIND_UNIFORM].mean()),
+        "R": float(np.median(d_int) / np.median(d_obs)),
+        "n_behaviour_push_beyond_tau": int(np.sum(d_obs > tau)),
+        "d_obs": _q(d_obs),
+        "d_int": _q(d_int),
     }
 
 
@@ -341,7 +367,7 @@ def intervention_coverage(pool: dict, smoke: dict, states: dict) -> dict:
 
 
 def policy_log_density(states: dict, pool: dict) -> dict:
-    lab = label(states["contact"], states["target"])
+    lab = state_label(states)
     ld = states["log_density"]
     kinds = np.broadcast_to(states["kinds"], lab.shape)
     out = {"logged_action_at_states": _q(ld[:, 0])}
@@ -361,7 +387,7 @@ def policy_log_density(states: dict, pool: dict) -> dict:
             )
         ]
     )
-    pool_lab = label(pool["contact"], pool["target"]).reshape(-1)
+    pool_lab = label(pool["contact"], pool["target"], pool["reference"]).reshape(-1)
     out["pool_logged_actions"] = {
         "all": _q(pool_ld),
         **{n: _q(pool_ld[pool_lab == j]) for j, n in enumerate(LABELS)},
@@ -449,7 +475,7 @@ def positive_control_feasibility(sim: Sim, smoke: dict, states: dict) -> dict:
                 sim, smoke["state"][i, t], smoke["obs"][i, t], smoke["goal"][i, t], streams
             )
             d_obs_terms[i, t] = np.mean(((smoke["target"][i, t] - m) / sd) ** 2)
-    lab = label(states["contact"], states["target"])
+    lab = state_label(states)
     d_int_terms, d_logged_terms = [], []
     for i in range(len(states["seed"])):
         streams = E.policy_streams(int(states["seed"][i]), "feasibility_")

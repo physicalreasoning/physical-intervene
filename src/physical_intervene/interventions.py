@@ -1,9 +1,10 @@
 """Test-like states, the 24 interventions and their labels (DESIGN.md, Interventions).
 
-Labels use only the simulator's own outcome. The diagnostic label (`label_vs_reference`) compares
-the box's outcome under the action with its outcome over the same step with contacts disabled,
-so a box that is already sliding is not counted as pushed; it is evidence for an open design
-question and is not used for anything else.
+Labels use only the simulator's own outcomes. A contact step is a push if the box's outcome differs
+from the no-contact reference (the same step from the same saved state with contacts disabled) by
+at least d_push in position or theta_push in rotation (DESIGN.md, Environment, Push label), so a box
+that is already sliding is not counted as pushed by a light touch. `label_total_motion` is the
+earlier rule on total motion, kept for reporting only.
 """
 
 from __future__ import annotations
@@ -29,24 +30,34 @@ def push_thresholds(
     return d_push, np.deg2rad(theta_push_deg)
 
 
-def label(
+def label_total_motion(
     contact: np.ndarray,
     target: np.ndarray,
     d_push: float = c.PUSH_MIN_DISPLACEMENT_M,
     theta_push_deg: float = c.PUSH_MIN_ROTATION_DEG,
 ) -> np.ndarray:
-    """0 no_contact, 1 graze, 2 push, from the contact flag and the box target (vectorised)."""
+    """Earlier rule, reported only: 0 no_contact, 1 graze, 2 push, on the box's total motion."""
     d, th = push_thresholds(d_push, theta_push_deg)
     target = np.asarray(target, float)
     moved = (np.hypot(target[..., 0], target[..., 1]) >= d) | (np.abs(target[..., 2]) >= th)
     return np.where(np.asarray(contact, bool), np.where(moved, 2, 1), 0)
 
 
-def label_vs_reference(contact: np.ndarray, target: np.ndarray, reference: np.ndarray, **kw) -> np.ndarray:
-    """Diagnostic label: as `label`, but on the difference from the no-contact reference outcome."""
+def effect(target: np.ndarray, reference: np.ndarray) -> np.ndarray:
+    """The box target minus the no-contact reference outcome, rotation wrapped (vectorised)."""
     diff = np.asarray(target, float) - np.asarray(reference, float)
     diff[..., 2] = wrap_angle(diff[..., 2])
-    return label(contact, diff, **kw)
+    return diff
+
+
+def label(contact: np.ndarray, target: np.ndarray, reference: np.ndarray, **kw) -> np.ndarray:
+    """0 no_contact, 1 graze, 2 push: the design's label, against the no-contact reference."""
+    return label_total_motion(contact, effect(target, reference), **kw)
+
+
+def state_label(states: dict) -> np.ndarray:
+    """Labels of all 25 actions at each test-like state, shape (n_states, 25)."""
+    return label(states["contact"], states["target"], states["reference"][:, None, :])
 
 
 def draw_interventions(seed: int, obs: np.ndarray) -> np.ndarray:

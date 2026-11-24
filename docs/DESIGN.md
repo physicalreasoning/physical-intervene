@@ -19,7 +19,7 @@ of evm-intervene.
 
 | | |
 | --- | --- |
-| **Environment** | MuJoCo planar pushing: a 10 cm box and a cylindrical pusher driven by commanded velocity, 0.1 s control steps. The full simulator state is saved and restored bit-exactly in one pinned Docker image, so the true outcome of any action from any state costs microseconds. |
+| **Environment** | MuJoCo planar pushing: a 10 cm box and a round pusher driven by commanded velocity, 0.1 s control steps. The full simulator state is saved and restored bit-exactly in one pinned Docker image, so the true outcome of any action from any state costs microseconds. |
 | **Data** | A scripted policy pushes the box toward a hidden goal, with noise, and takes a uniform random action 20% of the time (less near the box if Phase 0's coverage check requires). 1,000 training and 100 validation episodes; every model trains on the same data. |
 | **Interventions** | 1,000 held-out states where the pusher is within 10 mm of the box. From each, 24 actions (12 aimed at the box, 12 uniform), each labelled by the simulator as *no contact*, *graze* or *push*. Only *push* is gated. |
 | **Models** | `mlp` and `gru` (architectures), `rssm` (different objective: ELBO), `contact_wm` (different structure: pushing physics written in, numbers learned). Three widths (10k, 100k, 1M parameters); 10 seeds at medium width, which G1 uses. Baselines: `copy`, `constvel`, `knn`. |
@@ -89,13 +89,13 @@ freeze 1 (see *Seal*). Where a number appears both here and there, the two must 
 | --- | --- |
 | Simulator | MuJoCo, exact version pinned in `uv.lock` and recorded in the freeze |
 | Platform | linux/amd64, one Docker image pinned by digest, single thread; all ground truth is generated in that image |
-| Scene | table plane; box 10 x 10 cm (slide x, slide y, hinge z joints; fixed mass). **Table resistance** is `frictionloss` on the box's three joints: the planar joints carry no gravity load, so contact friction with the table does not act. It applies per axis, so a diagonal slide meets √2 times the resistance of an axis-aligned one; this is stated, not corrected; cylindrical pusher, radius 1 cm, mass 0.1 kg, on slide x/y joints driven by velocity actuators with gain kv = 10 N·s/m (a 10 ms response time); all other physical values in the scene file |
+| Scene | table plane; box 10 x 10 cm (slide x, slide y, hinge z joints; fixed mass). **Table resistance** is `frictionloss` on the box's three joints: the planar joints carry no gravity load, so contact friction with the table does not act. It applies per axis, so a diagonal slide meets √2 times the resistance of an axis-aligned one; this is stated, not corrected; round pusher, radius 1 cm, mass 0.1 kg: a vertical capsule whose straight section spans the box's height, so in the plane it is a 1 cm disc (MuJoCo's box-cylinder collider missed contacts on the pinned platform; the box-capsule collider is exact), on slide x/y joints driven by velocity actuators with gain kv = 10 N·s/m (a 10 ms response time); all other physical values in the scene file |
 | Timing | physics step 2 ms; control step 0.1 s (50 physics steps); episodes of 100 control steps |
 | Action a_t | commanded pusher velocity (vx, vy), each in [-0.15, 0.15] m/s |
 | State s_t | box (x, y, cos θ, sin θ, vx, vy, ω) and pusher (x, y, vx, vy): 11 numbers, fully observed |
 | Save / restore | `mj_getState` / `mj_setState` with `mjSTATE_INTEGRATION` (includes the solver warm-start; restoring only qpos and qvel is not bit-exact) |
 | Contact label | a transition is *contact* if any pusher-box contact exists at any of its 50 physics steps, in the simulator's own outcome |
-| Push label | a contact transition is a *push* if, in the simulator's own outcome, the box centre moves at least d_push or the box turns at least θ_push over the step; otherwise it is a *graze*. d_push and θ_push are fixed in Phase 0 (see *Interventions*) |
+| Push label | a contact transition is a *push* if the pusher changes the box's motion: compared with the *no-contact reference*, the same step from the same saved state with contacts disabled (so the box moves only under its own momentum and table resistance), the box centre ends at least d_push away or the box's rotation differs by at least θ_push; otherwise it is a *graze*. The reference keeps a box that was already sliding from counting as pushed by a light touch. Both outcomes are the simulator's own. d_push and θ_push are fixed in Phase 0 (see *Interventions*) |
 
 ## Target and loss
 
@@ -152,6 +152,12 @@ most 0.15 m/s × 0.1 s = 15 mm, and aimed interventions travel 5 to 15 mm, so fr
 10 mm both contact and no-contact actions are possible. A larger cap would add states from which
 no action can reach the box. Phase 0 checks the resulting push rate.
 
+**Episodes with no such step.** If the gap stays above 10 mm from the drawn step to the end of the
+episode, the episode yields no state and is skipped: a fresh episode starts from the next seed
+(the seed plus one), and so on until the split has its number of states. Skipped seeds are
+recorded and reported. The same rule makes the smoke, pilot and test states, so the states a seed
+produces are reproducible. Training and validation episodes are never skipped.
+
 **Interventions.** From each held-out state, the simulator is restored and run for one control
 step under each of K = 24 actions:
 
@@ -163,19 +169,20 @@ Each action is labelled by the simulator, as above, into one of three strata:
 | Stratum | Meaning | Role |
 | --- | --- | --- |
 | `no_contact` | the pusher does not touch the box | reported, not gated |
-| `graze` | contact, but the box moves less than d_push and turns less than θ_push | reported, not gated |
-| `push` | contact that moves the box at least d_push or turns it at least θ_push | **gated** |
+| `graze` | contact, but against the no-contact reference the box ends less than d_push away and its rotation differs by less than θ_push | reported, not gated |
+| `push` | contact after which, against the no-contact reference, the box ends at least d_push away or its rotation differs by at least θ_push | **gated** |
 
 **Push is the primary stratum**, the counterpart of evm-intervene's regimes II and III (a trade
 that crosses a cliff, not one that only reaches it). Grazes are reported, not gated. A held-out state
 with no push action is dropped from the push stratum for every model.
 
 **Push thresholds.** d_push and θ_push are fixed in Phase 0, before freeze 1, from the simulator
-alone: for every contact intervention on the smoke states, Phase 0 records the box centre's
-displacement and the absolute rotation over the step, and plots both. The defaults are
-d_push = 2 mm and θ_push = 1°. They are kept unless the plot shows they cut through the bulk of
-real pushes rather than between grazes and pushes, in which case they are moved to that gap. The
-final values, the plots and the share of contact interventions labelled graze are recorded in
+alone: for every contact intervention on the smoke states, Phase 0 records how far the box
+centre ends from where it ends in the no-contact reference, and the absolute difference in
+rotation, and plots both. The defaults are d_push = 2 mm and θ_push = 1°. If the plot shows a gap
+between grazes and pushes and the defaults cut through the bulk of pushes above it, they are moved
+to that gap; otherwise, including when the values form a continuum with no gap, the defaults are
+kept. The final values, the plots and the share of contact interventions labelled graze are recorded in
 freeze 1. The thresholds use only the simulator's true outcome, never a model's prediction.
 
 The logged action from the same state is also scored, as the observational reference on the

@@ -48,7 +48,7 @@ def wrap_angle(a: np.ndarray | float) -> np.ndarray | float:
 def gap(box_xy: np.ndarray, box_theta: np.ndarray, pusher_xy: np.ndarray) -> np.ndarray:
     """Shortest distance from the pusher's surface to the box's surface, in m (vectorised).
 
-    Distance from the cylinder's centre to the rotated square, minus the pusher radius; 0 or
+    Distance from the pusher's centre to the rotated square, minus the pusher radius; 0 or
     negative when touching (inside the box the signed distance to the nearest face is used).
     """
     box_xy, pusher_xy = np.asarray(box_xy, float), np.asarray(pusher_xy, float)
