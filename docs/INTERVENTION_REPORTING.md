@@ -10,9 +10,8 @@ so that their results read side by side. Two repos would use it:
 - physical-intervene (this repo): planar pushing in MuJoCo. It has a draft design and a
   scaffold, no data or models yet.
 
-Today the only format is what evm-intervene's `scripts/run_experiment.py` writes. Nothing
-describes it, so any commit could change it unnoticed. This draft writes that output down as
-the format. **evm-intervene's current output already conforms; it needs no change.** Where the
+Today the format is what evm-intervene's `scripts/run_experiment.py` writes. This draft writes
+that output down as the format, so both repos can point to one description. **evm-intervene's current output already conforms; it needs no change.** Where the
 format needs something evm-intervene does not write as a key, this draft says how to read it
 from the keys evm-intervene already has. Suggested changes to evm-intervene are listed at the
 end and are optional. Each repo then points here, not at the other's output.
@@ -24,8 +23,8 @@ Each test fixes these before training, in its own design file.
 | Term | Definition |
 | --- | --- |
 | state | a held-out initial state from which the simulator is reset and run under each intervention (evm: one held-out archive checkpoint; physical: one saved simulator state) |
-| hard stratum | the interventions the test is about (evm: tick-cliff and cascade; physical: contact). Gated. |
-| easy stratum | the remaining interventions (evm: in-tick; physical: no contact). Reported, not gated. |
+| hard stratum | the interventions the test is about (evm: tick-cliff and cascade; physical: push, contact that moves the box). Gated. |
+| easy stratum | the remaining interventions (evm: in-tick; physical: no contact, and graze). Reported, not gated. |
 | std-MSE | per-transition mean over target dimensions of the squared error, each divided by that dimension's standard deviation on the **training split only**, with stated floors |
 | physical-unit error | an RMSE in the test's own unit (evm: log-price, bps; physical: box corners, mm). Reported, not gated. |
 | L_obs, validation loss | std-MSE on held-out observational transitions |
@@ -128,9 +127,9 @@ Keys use each test's own names. This table maps them, so a reader can line the t
 
 | Placeholder | evm-intervene | physical-intervene |
 | --- | --- | --- |
-| `<stratum>` (stratum blocks, `regime_counts`) | `regime_1_smooth`, `regime_2_cliff`, `regime_3_cascade` | `no_contact`, `contact` |
-| `<hard block>`, the gated stratum block | `cliff_and_cascade` | `contact` |
-| `<hard>`, in gap, Spearman and seed keys | `cliff` | `contact` |
+| `<stratum>` (stratum blocks, `regime_counts`) | `regime_1_smooth`, `regime_2_cliff`, `regime_3_cascade` | `no_contact`, `graze`, `push` |
+| `<hard block>`, the gated stratum block | `cliff_and_cascade` | `push` |
+| `<hard>`, in gap, Spearman and seed keys | `cliff` | `push` |
 | `<unit>`, physical-unit error | `price_rmse_bps` (`price_bps` in Spearman keys only) | `corner_rmse_mm` (`corner_mm` in Spearman keys only) |
 | training length, top level | `epochs` | `updates` |
 | other per-stratum errors | `liquidity_rmse` | `angle_rmse_deg` |
@@ -206,10 +205,14 @@ Its other keys not shown above are evm-specific extras: `counts.n_oot_obs`, the 
 keys, `*_price_rmse_bps` beside L_obs, and the per-seed `*_cliff_price_rmse_bps`.
 
 **physical-intervene.** Written to this format from the start, with its own names (table
-above) and all optional keys. It also adds `matched_contact_gap_states_only` (the interval
-resampling states only, as evm-intervene's), `decoupled_by_interval` in G2, `width` in `seed_checkpoints`, `controls` for its two control
-models, and `logged_action` per model (the logged action scored on the test states, an
-observational reference that is not an intervention).
+above) and all optional keys. It also adds `matched_push_gap_states_only` (the interval
+resampling states only, as evm-intervene's), `decoupled_by_interval` in G2, `width` in `seed_checkpoints`, `controls` for its five control
+models, `control_pairs` with `gates.gate_positive_control_pass` and `gates.gate_negative_controls`
+for its positive and negative control pairs, two extra `gate_g1_reading` values
+(`inconclusive_not_specific`, `inconclusive_not_sensitive`), `logged_action` per model (the
+logged action scored on the test states, an observational reference that is not an
+intervention), `matched_only` and `gap_along_training` per pair (the gap at best checkpoints
+and at other shared loss levels), and `updates` and `met_plateau_criterion` per model and run.
 
 ## Open questions
 
@@ -217,18 +220,18 @@ observational reference that is not an intervention).
    seed-to-seed difference cannot pass as an architecture difference. evm-intervene resamples
    states only. Should evm-intervene also resample seeds, so that both G1s mean the same thing?
    Until then, compare evm-intervene's `matched_cliff_gap` with physical-intervene's
-   `matched_contact_gap_states_only`.
+   `matched_push_gap_states_only`.
 2. **Reference model in G1.** evm-intervene tests each model against one anchor
-   (`conservation_wm`). physical-intervene has no natural anchor and tests all pairs, taking the
+   (`conservation_wm`). physical-intervene tests all pairs of its four main architectures (its structured model,
+   `contact_wm`, is not an anchor), taking the
    lower-E_int member as the reference. Should the format allow both, as now, or fix one rule?
 3. **Matching target.** evm-intervene matches to the anchor's 5-seed mean best L_obs.
    physical-intervene plans V\* = 1.1 × the largest per-architecture median best L_obs. Is the
    target rule per test, as this draft says, or shared?
-4. **evm-intervene's design text.** Its `docs/DESIGN.md` says G2 also uses intermediate
-   matched-loss checkpoints, but the code uses the 20 best checkpoints. It also does not say
-   whether G2 reads the point estimate or the interval; the code uses the point estimate, and
-   it does not record a G1 *not testable* outcome. This draft follows the code. Would
-   evm-intervene's maintainer want its DESIGN.md updated to match?
+4. **evm-intervene's design text and code.** Its `docs/DESIGN.md` describes G2 over best and
+   intermediate matched-loss checkpoints; its code uses the 20 best checkpoints and reads the
+   point estimate, and its output has no G1 *not testable* value. This draft follows the code.
+   Would evm-intervene's maintainer like the format to note this, or its DESIGN.md to match?
 5. **Where the format lives.** Here in physical-intervene for now, while it is a draft. Once
    agreed, should it move to forward (where #5 started) or to a separate small repo that both
    depend on?

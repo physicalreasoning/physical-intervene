@@ -19,6 +19,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: uv sync --locked --no-config --default-index https://pypi.org/simple
-      - run: uv run ruff check src tests
-      - run: uv run ruff format --check src tests
+      - run: uv run ruff check src scripts tests
+      - run: uv run ruff format --check src scripts tests
       - run: uv run pytest -q

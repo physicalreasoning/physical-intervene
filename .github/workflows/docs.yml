@@ -1,0 +1,20 @@
+name: docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Relative links resolve
+        run: python scripts/check_docs.py links
+      - name: No em dashes
+        run: python scripts/check_docs.py dashes
