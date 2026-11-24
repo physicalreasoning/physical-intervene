@@ -1,0 +1,7 @@
+{
+  "byte_identical": 532,
+  "n": 5000,
+  "max_abs_qpos_diff": 1.3322676295501878e-15,
+  "n_qpos_diff_gt_1e-9": 0,
+  "label_disagreements": 0
+}
