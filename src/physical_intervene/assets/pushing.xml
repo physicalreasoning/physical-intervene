@@ -1,0 +1,58 @@
+<!-- Planar pushing scene (docs/DESIGN.md, Environment).
+Fixed by the design: 2 ms timestep, 10 x 10 cm box on slide x, slide y and hinge z joints, table
+resistance as frictionloss on those joints, cylindrical pusher of radius 1 cm and mass 0.1 kg on
+slide x and slide y joints driven by velocity actuators with kv = 10 N s/m.
+Implementation settings chosen in Phase 0 are commented where they are set. -->
+<mujoco model="planar_pushing">
+  <compiler angle="radian" autolimits="true"/>
+
+  <!-- implicitfast integrates the actuators' velocity feedback implicitly; the other solver settings
+  are MuJoCo's defaults, written out so they are hashed with the scene. -->
+  <option timestep="0.002" integrator="implicitfast" solver="Newton" cone="pyramidal"
+          iterations="100" ls_iterations="50" tolerance="1e-8"/>
+
+  <default>
+    <!-- Nothing collides unless enabled below: only pusher-box contact exists. -->
+    <geom contype="0" conaffinity="0"/>
+  </default>
+
+  <worldbody>
+    <light pos="0 0 1"/>
+    <!-- Visual only: the bodies cannot move vertically, so table contact would carry no load. -->
+    <geom name="table" type="plane" size="0.5 0.5 0.01" rgba="0.8 0.8 0.8 1"/>
+
+    <!-- Box: 10 x 10 x 5 cm, 0.15 kg (0.2 kg failed the simulator part of Pusher can move the box:
+    a diagonal push at 0.05 m/s moved it 1.98 mm), centre 2.5 cm above the table. frictionloss: 0.1 N on each
+    slide joint (so F_resist = sqrt(2) x 0.1 N in the worst direction, and a box sliding at 0.1 m/s
+    stops within about 1 cm), 0.004 N m on the hinge (about the torque of 0.1 N of uniform table
+    friction under a 10 cm square). -->
+    <body name="box" pos="0 0 0.025">
+      <joint name="box_x" type="slide" axis="1 0 0" frictionloss="0.1"/>
+      <joint name="box_y" type="slide" axis="0 1 0" frictionloss="0.1"/>
+      <joint name="box_yaw" type="hinge" axis="0 0 1" frictionloss="0.004"/>
+      <!-- Pusher-box friction 0.3 (both geoms carry it; MuJoCo uses the larger); contact
+      time constant 10 ms, stiffer than the 20 ms default, to limit penetration. -->
+      <geom name="box" type="box" size="0.05 0.05 0.025" mass="0.15" rgba="0.8 0.4 0.2 1"
+            contype="2" conaffinity="1" condim="3" friction="0.3 0.005 0.0001" solref="0.01 1"/>
+    </body>
+
+    <!-- Pusher: radius 1 cm, height 4 cm, 0.1 kg, at the box's height. Its collision geom is a vertical
+    capsule (2 cm straight section plus 1 cm caps), not MuJoCo's cylinder: the box-cylinder collider
+    (native CCD) missed about 1 in 5 shallow penetrations in the linux/amd64 image, while the analytic
+    box-capsule collider is exact on both platforms tested. The straight section lies within the box's
+    height and the caps touch nothing, so in the plane it is the same 1 cm disc. -->
+    <body name="pusher" pos="0 0 0.025">
+      <joint name="pusher_x" type="slide" axis="1 0 0"/>
+      <joint name="pusher_y" type="slide" axis="0 1 0"/>
+      <geom name="pusher" type="capsule" size="0.01 0.01" mass="0.1" rgba="0.2 0.3 0.8 1"
+            contype="1" conaffinity="2" condim="3" friction="0.3 0.005 0.0001" solref="0.01 1"/>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <!-- forcerange 2 N: above kv x 0.15 m/s = 1.5 N, so it never caps the force against a box at
+    rest; it caps the force when the command reverses against the pusher's motion. -->
+    <velocity name="pusher_vx" joint="pusher_x" kv="10" ctrlrange="-0.15 0.15" forcerange="-2 2"/>
+    <velocity name="pusher_vy" joint="pusher_y" kv="10" ctrlrange="-0.15 0.15" forcerange="-2 2"/>
+  </actuator>
+</mujoco>
