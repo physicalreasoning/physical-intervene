@@ -1,0 +1,13 @@
+{
+  "n_states": 200,
+  "n_actions_per_state": 25,
+  "n_compared": 5000,
+  "n_mismatched": 0,
+  "first_mismatches": [],
+  "passed": true,
+  "platform": "Linux-7.0.14-linuxkit-x86_64-with-glibc2.36",
+  "machine": "x86_64",
+  "python": "3.12.16",
+  "mujoco": "4.0.1",
+  "run": "generate and check in two separate docker run calls (fresh processes), image physical-intervene:phase0 sha256:6b7201f322307c30c0faef68383f784901e5f30d4cf0a6b6142aef26875dd810, linux/amd64 under Rosetta on Apple Silicon"
+}

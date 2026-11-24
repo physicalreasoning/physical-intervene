@@ -1,0 +1,154 @@
+{
+  "note": "attempt 1 data (epsilon_near 0.05) rescored with the push label against the no-contact reference",
+  "push_rate": {
+    "n_states": 200,
+    "frac_states_with_push": 0.97,
+    "mean_push_per_state": 8.97,
+    "push_per_state": {
+      "n": 200,
+      "mean": 8.97,
+      "q05": 1.0,
+      "q25": 4.0,
+      "q50": 9.0,
+      "q75": 13.0,
+      "q95": 17.0
+    },
+    "rates_all": {
+      "no_contact": 0.3375,
+      "graze": 0.28875,
+      "push": 0.37375
+    },
+    "rates_by_kind": {
+      "aimed": {
+        "no_contact": 0.19958333333333333,
+        "graze": 0.28791666666666665,
+        "push": 0.5125
+      },
+      "uniform": {
+        "no_contact": 0.47541666666666665,
+        "graze": 0.28958333333333336,
+        "push": 0.235
+      }
+    },
+    "rates_logged_action": {
+      "no_contact": 0.29,
+      "graze": 0.235,
+      "push": 0.475
+    },
+    "pass_condition": "frac_states_with_push >= 0.9 and mean_push_per_state >= 6",
+    "passed": true
+  },
+  "intervention_coverage": {
+    "measure": "action novelty given the state: mean distance (m/s) from the action to the 5 nearest actions at the 100 nearest pool states",
+    "tau": 0.02387181363925374,
+    "T": 0.3455964325529543,
+    "T_aimed": 0.24878048780487805,
+    "T_uniform": 0.5567375886524822,
+    "R": 1.7755811701701731,
+    "n_behaviour_push_beyond_tau": 77,
+    "d_obs": {
+      "n": 1528,
+      "mean": 0.011827781662847536,
+      "q05": 0.005114190378685492,
+      "q25": 0.007606367887390027,
+      "q50": 0.009928522780885095,
+      "q75": 0.013540138065675056,
+      "q95": 0.02387181363925374
+    },
+    "d_int": {
+      "n": 1794,
+      "mean": 0.02318450561919387,
+      "q05": 0.007224430692241777,
+      "q25": 0.011519495338357073,
+      "q50": 0.017628898097345178,
+      "q75": 0.029155306773846968,
+      "q95": 0.05716043947493616
+    },
+    "n_pool_transitions": 100000,
+    "n_pool_push": 30887,
+    "pool_push_share_from_uniform": 0.021562469647424483,
+    "pool_contacts_from_uniform": 1760,
+    "n_behaviour_push_smoke": 1528,
+    "n_push_interventions": 1794,
+    "earlier_measure_not_gated": {
+      "measure": "mean distance to the 5 nearest pool push transitions in standardised (s_t, a_t)",
+      "tau": 1.6957604541735438,
+      "T": 0.10813823857302118,
+      "T_aimed": 0.08536585365853659,
+      "T_uniform": 0.15780141843971632,
+      "R": 1.1201912813887327,
+      "n_behaviour_push_beyond_tau": 77,
+      "d_obs": {
+        "n": 1528,
+        "mean": 1.1025064415406132,
+        "q05": 0.7052184213829125,
+        "q25": 0.867780528820581,
+        "q50": 1.0470529174725927,
+        "q75": 1.2684263142354926,
+        "q95": 1.6957604541735438
+      },
+      "d_int": {
+        "n": 1794,
+        "mean": 1.2360647272267493,
+        "q05": 0.7758844210918355,
+        "q25": 0.983233379014273,
+        "q50": 1.1728995493054346,
+        "q75": 1.4484358542975437,
+        "q95": 1.8752257295393298
+      }
+    },
+    "epsilon_near": 0.05,
+    "pass_condition": "T >= 0.25",
+    "passed": true
+  },
+  "contact_coverage": {
+    "n_transitions": 5000,
+    "contact_share": 0.4202,
+    "push_share": 0.3056,
+    "graze_share": 0.1146,
+    "contacts_from_scripted": 2010,
+    "contacts_from_uniform": 91,
+    "pushes_from_scripted": 1494,
+    "pushes_from_uniform": 34,
+    "uniform_action_share": 0.1026,
+    "passed": null
+  },
+  "push_thresholds": {
+    "n_contact_interventions": 3180,
+    "d_push_mm": 2.0,
+    "theta_push_deg": 1.0,
+    "graze_share_of_contacts": 0.4358490566037736,
+    "displacement_vs_reference_mm": {
+      "n": 3180,
+      "mean": 2.5191276738072883,
+      "q05": 0.0,
+      "q25": 0.34027315873505753,
+      "q50": 2.0532431925270958,
+      "q75": 4.090264522747473,
+      "q95": 7.138647317619601
+    },
+    "rotation_vs_reference_deg": {
+      "n": 3180,
+      "mean": 0.9707881529961586,
+      "q05": 0.0,
+      "q25": 0.013178883039025997,
+      "q50": 0.2424093728768767,
+      "q75": 1.3402487486640942,
+      "q95": 4.264352410927503
+    },
+    "share_with_no_effect_at_all": 0.16729559748427672,
+    "share_displacement_within_factor_2_of_d_push": 0.3836477987421384,
+    "share_below_d_push_but_rotated_at_least_theta_push": 0.05880503144654088,
+    "total_motion_displacement_mm": {
+      "n": 3180,
+      "mean": 4.787376415718393,
+      "q05": 0.24394165937602671,
+      "q25": 2.0031049231514286,
+      "q50": 4.571605520689896,
+      "q75": 7.154837467216679,
+      "q95": 10.531383690979414
+    },
+    "pass_condition": "move the defaults only to a gap between grazes and pushes that they cut above; keep them otherwise",
+    "passed": null
+  }
+}

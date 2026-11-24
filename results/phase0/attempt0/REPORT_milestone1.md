@@ -1,5 +1,8 @@
 # Phase 0, milestone 1: simulator and environment checks
 
+**Attempt 0 (ε_near = 0.2), superseded by attempt 1** (`../attempt1/REPORT_attempt1.md`). Its files
+were moved from `results/phase0/` to `results/phase0/attempt0/` and its data to `data/smoke/attempt0/`.
+
 Branch `phase0-simulator` (from `smoke-test`), not committed. Simulator and scripted policy only:
 no model of any kind was built, trained or run. Smoke seeds only; no pilot, train, validation or
 test data was generated, and no test seed was derived.
@@ -105,7 +108,7 @@ interventions against 0.16 for behaviour pushes (2/13 = 0.15 if every dimension 
 same). Interventions do differ in their actions. But they start from behaviour states, and the
 11 state dimensions dominate both distances, so d_int and d_obs come out nearly the same. I
 expect a lower ε_near to raise T only a little, because it mainly changes the pool's actions.
-The ladder rerun is the coordinator's call (design-log issue 2).
+The ladder rerun is the coordinator's call.
 
 **Policy log-density (reported).** Medians: logged actions at the smoke states 4.88; pool logged
 actions 4.87 (pool pushes 4.92); aimed interventions 1.59 (push 1.80); uniform interventions 0.80
@@ -130,7 +133,7 @@ state, from the feasibility streams.
 25 actions 3.2 s, feasibility 86 s; 0.23 ms per episode control step. Training time belongs to
 milestone 2.
 
-## 3. Diagnostic push label (design-log issue 5)
+## 3. Diagnostic push label
 
 The reference outcome is the same step from the same state with contacts disabled
 (`mjDSBL_CONTACT`), so the pusher cannot touch the box. The diagnostic label applies the same
@@ -151,7 +154,7 @@ thresholds to (outcome − reference).
   action, and exactly the same with contacts disabled. The design's label calls it a push.
 - Under the reference label the push rate still passes: 94.5% of states, mean 8.88 per state.
 
-This supports issue 5: the design's label calls a sliding box pushed. No rule was changed.
+This supports the concern that the design's label calls a sliding box pushed. No rule was changed.
 Examples are in `env_checks.json` under `push_label_diagnostic`.
 
 ## 4. Values chosen (the docs do not fix them)
@@ -233,7 +236,7 @@ Examples are in `env_checks.json` under `push_label_diagnostic`.
 5. *Intervention coverage*: with distances over 13 standardised dimensions, state dimensions
    dominate. Interventions start from behaviour states, so T stays near 1 − 0.95 + a little
    whatever the actions are. The ε_near ladder may not be able to reach T ≥ 0.25.
-6. *Push label* (issue 5): see section 3. 26% of contact labels change with a no-contact
+6. *Push label*: see section 3. 26% of contact labels change with a no-contact
    reference, and 56 states are all-push only because the box was sliding.
 7. *Shadow actions*: the docs give no significance level for the two-sample test; I used
    p ≥ 0.01, per axis and on the norm.
