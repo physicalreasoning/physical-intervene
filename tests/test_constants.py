@@ -22,7 +22,9 @@ def test_seeds_match_evm_intervene() -> None:
 
 
 def test_seed_counts_and_twins() -> None:
-    assert len(c.MAIN_SEEDS) == 10 and len(set(c.MAIN_SEEDS)) == 10
+    assert len(c.MAIN_SEEDS) == 20 and len(set(c.MAIN_SEEDS)) == 20
+    assert c.MAIN_SEEDS[-1] == 220 and c.TWIN_SEEDS[0] == 231 and c.TWIN_SEEDS[-1] == 440
+    assert c.G1_MIN_SEEDS_PER_ARCHITECTURE == 12  # DESIGN.md, Matching: 12 of 20
     assert len(c.TWIN_SEEDS) == len(c.MAIN_SEEDS)
     assert not set(c.TWIN_SEEDS) & set(c.MAIN_SEEDS)
     assert 0 < c.G1_MIN_SEEDS_PER_ARCHITECTURE <= len(c.MAIN_SEEDS)

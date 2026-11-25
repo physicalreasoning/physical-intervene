@@ -1,0 +1,426 @@
+{
+ "what": "Phase 0 exploration: how G1's interval behaves when seeds differ a lot on pushes, at the smoke\nstates' size and at about the test set's size, and two ways to widen its seed part. Stand-ins only.",
+ "methods": {
+  "design": "states (paired) and seeds resampled with replacement (DESIGN.md, G1)",
+  "inflated": "design, each family's seed part times sqrt(n / (n - 1))",
+  "t": "states-only replicate + t(Welch-Satterthwaite df) x sqrt(s_a^2 / n_a + s_b^2 / n_b)"
+ },
+ "quick": false,
+ "settings": [
+  {
+   "n_states": 200,
+   "cv": 0.1,
+   "kind": "null",
+   "draws": 1000,
+   "reps": 5000,
+   "bias_share": 0.12247448713915891,
+   "n_push_transitions": 1857,
+   "results": {
+    "design": {
+     "twin_pair_separates": 0.0005,
+     "twin_pair_interval_excludes_zero": 0.07175,
+     "main_pair_interval_excludes_zero": 0.07516666666666667,
+     "g1_some_main_pair_meets": 0.002,
+     "g1_reading_pass": 0.001
+    },
+    "inflated": {
+     "twin_pair_separates": 0.0005,
+     "twin_pair_interval_excludes_zero": 0.058,
+     "main_pair_interval_excludes_zero": 0.06133333333333333,
+     "g1_some_main_pair_meets": 0.002,
+     "g1_reading_pass": 0.001
+    },
+    "t": {
+     "twin_pair_separates": 0.00025,
+     "twin_pair_interval_excludes_zero": 0.0405,
+     "main_pair_interval_excludes_zero": 0.041,
+     "g1_some_main_pair_meets": 0.0,
+     "g1_reading_pass": 0.0
+    }
+   },
+   "seconds": 98.21451112488285
+  },
+  {
+   "n_states": 200,
+   "cv": 0.1,
+   "kind": "power",
+   "draws": 500,
+   "reps": 5000,
+   "bias_share": 0.12247448713915891,
+   "n_push_transitions": 1857,
+   "results": {
+    "design": {
+     "twin_pair_separates": 0.0,
+     "twin_pair_interval_excludes_zero": 0.0615,
+     "main_pair_interval_excludes_zero": 0.5306666666666666,
+     "g1_some_main_pair_meets": 0.976,
+     "g1_reading_pass": 0.976,
+     "g1_planted_pair_meets": 0.976
+    },
+    "inflated": {
+     "twin_pair_separates": 0.0,
+     "twin_pair_interval_excludes_zero": 0.05,
+     "main_pair_interval_excludes_zero": 0.5236666666666666,
+     "g1_some_main_pair_meets": 0.976,
+     "g1_reading_pass": 0.976,
+     "g1_planted_pair_meets": 0.976
+    },
+    "t": {
+     "twin_pair_separates": 0.0,
+     "twin_pair_interval_excludes_zero": 0.0385,
+     "main_pair_interval_excludes_zero": 0.5133333333333333,
+     "g1_some_main_pair_meets": 0.976,
+     "g1_reading_pass": 0.976,
+     "g1_planted_pair_meets": 0.976
+    }
+   },
+   "seconds": 49.523590959142894
+  },
+  {
+   "n_states": 200,
+   "cv": 0.2,
+   "kind": "null",
+   "draws": 1000,
+   "reps": 5000,
+   "bias_share": 0.24494897427831783,
+   "n_push_transitions": 1857,
+   "results": {
+    "design": {
+     "twin_pair_separates": 0.04275,
+     "twin_pair_interval_excludes_zero": 0.089,
+     "main_pair_interval_excludes_zero": 0.0845,
+     "g1_some_main_pair_meets": 0.102,
+     "g1_reading_pass": 0.059
+    },
+    "inflated": {
+     "twin_pair_separates": 0.03975,
+     "twin_pair_interval_excludes_zero": 0.07275,
+     "main_pair_interval_excludes_zero": 0.07133333333333333,
+     "g1_some_main_pair_meets": 0.076,
+     "g1_reading_pass": 0.041
+    },
+    "t": {
+     "twin_pair_separates": 0.02625,
+     "twin_pair_interval_excludes_zero": 0.04475,
+     "main_pair_interval_excludes_zero": 0.0435,
+     "g1_some_main_pair_meets": 0.021,
+     "g1_reading_pass": 0.011
+    }
+   },
+   "seconds": 97.99273308319971
+  },
+  {
+   "n_states": 200,
+   "cv": 0.2,
+   "kind": "power",
+   "draws": 500,
+   "reps": 5000,
+   "bias_share": 0.24494897427831783,
+   "n_push_transitions": 1857,
+   "results": {
+    "design": {
+     "twin_pair_separates": 0.0285,
+     "twin_pair_interval_excludes_zero": 0.0835,
+     "main_pair_interval_excludes_zero": 0.45366666666666666,
+     "g1_some_main_pair_meets": 0.892,
+     "g1_reading_pass": 0.87,
+     "g1_planted_pair_meets": 0.892
+    },
+    "inflated": {
+     "twin_pair_separates": 0.027,
+     "twin_pair_interval_excludes_zero": 0.07,
+     "main_pair_interval_excludes_zero": 0.435,
+     "g1_some_main_pair_meets": 0.87,
+     "g1_reading_pass": 0.848,
+     "g1_planted_pair_meets": 0.87
+    },
+    "t": {
+     "twin_pair_separates": 0.0175,
+     "twin_pair_interval_excludes_zero": 0.0405,
+     "main_pair_interval_excludes_zero": 0.405,
+     "g1_some_main_pair_meets": 0.774,
+     "g1_reading_pass": 0.756,
+     "g1_planted_pair_meets": 0.774
+    }
+   },
+   "seconds": 50.06912362482399
+  },
+  {
+   "n_states": 200,
+   "cv": 0.4,
+   "kind": "null",
+   "draws": 1000,
+   "reps": 5000,
+   "bias_share": 0.48989794855663565,
+   "n_push_transitions": 1857,
+   "results": {
+    "design": {
+     "twin_pair_separates": 0.0935,
+     "twin_pair_interval_excludes_zero": 0.0945,
+     "main_pair_interval_excludes_zero": 0.08683333333333333,
+     "g1_some_main_pair_meets": 0.108,
+     "g1_reading_pass": 0.057
+    },
+    "inflated": {
+     "twin_pair_separates": 0.077,
+     "twin_pair_interval_excludes_zero": 0.07725,
+     "main_pair_interval_excludes_zero": 0.072,
+     "g1_some_main_pair_meets": 0.084,
+     "g1_reading_pass": 0.046
+    },
+    "t": {
+     "twin_pair_separates": 0.0465,
+     "twin_pair_interval_excludes_zero": 0.0465,
+     "main_pair_interval_excludes_zero": 0.047,
+     "g1_some_main_pair_meets": 0.036,
+     "g1_reading_pass": 0.014
+    }
+   },
+   "seconds": 98.24969974998385
+  },
+  {
+   "n_states": 200,
+   "cv": 0.4,
+   "kind": "power",
+   "draws": 500,
+   "reps": 5000,
+   "bias_share": 0.48989794855663565,
+   "n_push_transitions": 1857,
+   "results": {
+    "design": {
+     "twin_pair_separates": 0.0825,
+     "twin_pair_interval_excludes_zero": 0.0835,
+     "main_pair_interval_excludes_zero": 0.24766666666666667,
+     "g1_some_main_pair_meets": 0.468,
+     "g1_reading_pass": 0.388,
+     "g1_planted_pair_meets": 0.464
+    },
+    "inflated": {
+     "twin_pair_separates": 0.07,
+     "twin_pair_interval_excludes_zero": 0.07,
+     "main_pair_interval_excludes_zero": 0.221,
+     "g1_some_main_pair_meets": 0.422,
+     "g1_reading_pass": 0.346,
+     "g1_planted_pair_meets": 0.418
+    },
+    "t": {
+     "twin_pair_separates": 0.0385,
+     "twin_pair_interval_excludes_zero": 0.0385,
+     "main_pair_interval_excludes_zero": 0.164,
+     "g1_some_main_pair_meets": 0.214,
+     "g1_reading_pass": 0.176,
+     "g1_planted_pair_meets": 0.214
+    }
+   },
+   "seconds": 49.761708667036146
+  },
+  {
+   "n_states": 1000,
+   "cv": 0.1,
+   "kind": "null",
+   "draws": 1000,
+   "reps": 5000,
+   "bias_share": 0.12247448713915891,
+   "n_push_transitions": 9927,
+   "results": {
+    "design": {
+     "twin_pair_separates": 0.00025,
+     "twin_pair_interval_excludes_zero": 0.087,
+     "main_pair_interval_excludes_zero": 0.08383333333333333,
+     "g1_some_main_pair_meets": 0.001,
+     "g1_reading_pass": 0.001
+    },
+    "inflated": {
+     "twin_pair_separates": 0.00025,
+     "twin_pair_interval_excludes_zero": 0.0715,
+     "main_pair_interval_excludes_zero": 0.0695,
+     "g1_some_main_pair_meets": 0.001,
+     "g1_reading_pass": 0.001
+    },
+    "t": {
+     "twin_pair_separates": 0.00025,
+     "twin_pair_interval_excludes_zero": 0.0445,
+     "main_pair_interval_excludes_zero": 0.045,
+     "g1_some_main_pair_meets": 0.001,
+     "g1_reading_pass": 0.001
+    }
+   },
+   "seconds": 344.7718632076867
+  },
+  {
+   "n_states": 1000,
+   "cv": 0.1,
+   "kind": "power",
+   "draws": 500,
+   "reps": 5000,
+   "bias_share": 0.12247448713915891,
+   "n_push_transitions": 9927,
+   "results": {
+    "design": {
+     "twin_pair_separates": 0.0,
+     "twin_pair_interval_excludes_zero": 0.078,
+     "main_pair_interval_excludes_zero": 0.5356666666666666,
+     "g1_some_main_pair_meets": 0.98,
+     "g1_reading_pass": 0.98,
+     "g1_planted_pair_meets": 0.98
+    },
+    "inflated": {
+     "twin_pair_separates": 0.0,
+     "twin_pair_interval_excludes_zero": 0.071,
+     "main_pair_interval_excludes_zero": 0.529,
+     "g1_some_main_pair_meets": 0.98,
+     "g1_reading_pass": 0.98,
+     "g1_planted_pair_meets": 0.98
+    },
+    "t": {
+     "twin_pair_separates": 0.0,
+     "twin_pair_interval_excludes_zero": 0.047,
+     "main_pair_interval_excludes_zero": 0.518,
+     "g1_some_main_pair_meets": 0.98,
+     "g1_reading_pass": 0.98,
+     "g1_planted_pair_meets": 0.98
+    }
+   },
+   "seconds": 178.19682745775208
+  },
+  {
+   "n_states": 1000,
+   "cv": 0.2,
+   "kind": "null",
+   "draws": 1000,
+   "reps": 5000,
+   "bias_share": 0.24494897427831783,
+   "n_push_transitions": 9927,
+   "results": {
+    "design": {
+     "twin_pair_separates": 0.0375,
+     "twin_pair_interval_excludes_zero": 0.08775,
+     "main_pair_interval_excludes_zero": 0.08383333333333333,
+     "g1_some_main_pair_meets": 0.062,
+     "g1_reading_pass": 0.04
+    },
+    "inflated": {
+     "twin_pair_separates": 0.035,
+     "twin_pair_interval_excludes_zero": 0.073,
+     "main_pair_interval_excludes_zero": 0.0645,
+     "g1_some_main_pair_meets": 0.051,
+     "g1_reading_pass": 0.033
+    },
+    "t": {
+     "twin_pair_separates": 0.023,
+     "twin_pair_interval_excludes_zero": 0.0415,
+     "main_pair_interval_excludes_zero": 0.033,
+     "g1_some_main_pair_meets": 0.014,
+     "g1_reading_pass": 0.01
+    }
+   },
+   "seconds": 339.3732812497765
+  },
+  {
+   "n_states": 1000,
+   "cv": 0.2,
+   "kind": "power",
+   "draws": 500,
+   "reps": 5000,
+   "bias_share": 0.24494897427831783,
+   "n_push_transitions": 9927,
+   "results": {
+    "design": {
+     "twin_pair_separates": 0.023,
+     "twin_pair_interval_excludes_zero": 0.084,
+     "main_pair_interval_excludes_zero": 0.43466666666666665,
+     "g1_some_main_pair_meets": 0.872,
+     "g1_reading_pass": 0.86,
+     "g1_planted_pair_meets": 0.872
+    },
+    "inflated": {
+     "twin_pair_separates": 0.0225,
+     "twin_pair_interval_excludes_zero": 0.0685,
+     "main_pair_interval_excludes_zero": 0.416,
+     "g1_some_main_pair_meets": 0.86,
+     "g1_reading_pass": 0.848,
+     "g1_planted_pair_meets": 0.86
+    },
+    "t": {
+     "twin_pair_separates": 0.02,
+     "twin_pair_interval_excludes_zero": 0.044,
+     "main_pair_interval_excludes_zero": 0.37866666666666665,
+     "g1_some_main_pair_meets": 0.772,
+     "g1_reading_pass": 0.756,
+     "g1_planted_pair_meets": 0.772
+    }
+   },
+   "seconds": 173.36832416569814
+  },
+  {
+   "n_states": 1000,
+   "cv": 0.4,
+   "kind": "null",
+   "draws": 1000,
+   "reps": 5000,
+   "bias_share": 0.48989794855663565,
+   "n_push_transitions": 9927,
+   "results": {
+    "design": {
+     "twin_pair_separates": 0.0915,
+     "twin_pair_interval_excludes_zero": 0.0925,
+     "main_pair_interval_excludes_zero": 0.09516666666666666,
+     "g1_some_main_pair_meets": 0.129,
+     "g1_reading_pass": 0.071
+    },
+    "inflated": {
+     "twin_pair_separates": 0.07575,
+     "twin_pair_interval_excludes_zero": 0.0765,
+     "main_pair_interval_excludes_zero": 0.08266666666666667,
+     "g1_some_main_pair_meets": 0.096,
+     "g1_reading_pass": 0.054
+    },
+    "t": {
+     "twin_pair_separates": 0.0395,
+     "twin_pair_interval_excludes_zero": 0.04075,
+     "main_pair_interval_excludes_zero": 0.049833333333333334,
+     "g1_some_main_pair_meets": 0.023,
+     "g1_reading_pass": 0.011
+    }
+   },
+   "seconds": 338.40526795806363
+  },
+  {
+   "n_states": 1000,
+   "cv": 0.4,
+   "kind": "power",
+   "draws": 500,
+   "reps": 5000,
+   "bias_share": 0.48989794855663565,
+   "n_push_transitions": 9927,
+   "results": {
+    "design": {
+     "twin_pair_separates": 0.084,
+     "twin_pair_interval_excludes_zero": 0.086,
+     "main_pair_interval_excludes_zero": 0.24066666666666667,
+     "g1_some_main_pair_meets": 0.45,
+     "g1_reading_pass": 0.358,
+     "g1_planted_pair_meets": 0.444
+    },
+    "inflated": {
+     "twin_pair_separates": 0.07,
+     "twin_pair_interval_excludes_zero": 0.0705,
+     "main_pair_interval_excludes_zero": 0.217,
+     "g1_some_main_pair_meets": 0.408,
+     "g1_reading_pass": 0.332,
+     "g1_planted_pair_meets": 0.404
+    },
+    "t": {
+     "twin_pair_separates": 0.0385,
+     "twin_pair_interval_excludes_zero": 0.039,
+     "main_pair_interval_excludes_zero": 0.16333333333333333,
+     "g1_some_main_pair_meets": 0.234,
+     "g1_reading_pass": 0.188,
+     "g1_planted_pair_meets": 0.232
+    }
+   },
+   "seconds": 170.16024787491187
+  }
+ ],
+ "wall_seconds": 391.1224634172395
+}

@@ -141,3 +141,35 @@ def make_states(sim: Sim, seeds_from: int, n_states: int, epsilon_near: float = 
     out["skipped_seeds"] = np.array(skipped, dtype=np.int64)
     out["kinds"] = KINDS
     return out
+
+
+def state_histories(sim: Sim, states: dict, epsilon_near: float = policy.EPSILON_NEAR) -> dict:
+    """The model inputs' history at each test-like state: the last HISTORY_LEN (state, action) pairs
+    before its step, padded as for training examples (copies of s_0, zero action, mask 0).
+
+    Each state's episode is replayed from its seed up to its step; the replayed observation and logged
+    action at that step must equal the stored ones bit for bit, or this raises."""
+    n, L = len(states["seed"]), c.HISTORY_LEN
+    hist_s = np.empty((n, L, states["obs"].shape[1]))
+    hist_a = np.empty((n, L, 2))
+    mask = np.empty((n, L))
+    for i, (seed, step) in enumerate(zip(states["seed"], states["step"], strict=True)):
+        runner = EpisodeRunner(sim, int(seed), shadow=False, epsilon_near=epsilon_near)
+        obs, act = [], []
+        for _ in range(int(step)):
+            row = runner.policy_step()
+            obs.append(row["obs"])
+            act.append(row["action"])
+            runner.env_step(row["action"])
+        row = runner.policy_step()
+        if not (
+            np.array_equal(row["obs"], states["obs"][i])
+            and np.array_equal(row["action"], states["logged_action"][i])
+        ):
+            raise RuntimeError(f"replay of state {i} (seed {seed}) does not reproduce its stored step")
+        for j, t in enumerate(range(int(step) - L, int(step))):
+            real = t >= 0
+            hist_s[i, j] = obs[t] if real else (obs[0] if obs else row["obs"])
+            hist_a[i, j] = act[t] if real else c.HISTORY_PAD_ACTION
+            mask[i, j] = float(real)
+    return {"hist_s": hist_s, "hist_a": hist_a, "hist_mask": mask, "seed": states["seed"].copy()}

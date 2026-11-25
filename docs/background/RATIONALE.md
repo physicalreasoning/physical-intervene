@@ -106,55 +106,58 @@ V*, each run's matched checkpoint and the exclusions are chosen after training i
 Taking the largest p that reaches V* does not steer the control: whether it then separates on
 the test states is unknown when p is chosen.
 
-## Why 10 seeds
+## Why 20 seeds and Welch's t-test
 
-G1 resamples each architecture's seeds as well as the held-out states, so that a difference
-between training seeds cannot pass as a difference between architectures. With 1,000 states and
-thousands of push transitions, the state part of the interval is small; its width is set mostly
-by how much an architecture's seeds disagree. G1 is then in effect a comparison of n seed-level
-values against n, and the bootstrap is its estimate of how much those values vary.
+G1 must tell a real difference between two architectures from the ordinary disagreement between
+training runs (seeds) of one architecture. With 1,000 states and thousands of push transitions,
+the test states add little uncertainty; nearly all of it comes from how much the seeds disagree.
+G1 is therefore a comparison of n per-seed values against n, and it uses the standard test for
+that: Welch's t-test, which does not assume the two architectures' seeds vary equally.
 
 **Why not 5, evm-intervene's number.** evm-intervene uses seeds 11, 22, 33, 44, 55. It does not
-resample seeds, and it compares each model with its structured anchor, where the gap is about 20
-times, so seed noise has little effect on its result. Among its general-purpose models, at matched checkpoints in its crash-exposed arm,
+treat its seeds as a source of uncertainty (it averages them and resamples held-out states only),
+and it compares each model with its structured anchor, where the gap is about 20 times, so seed
+noise has little effect on its result. Among its general-purpose models, at matched checkpoints in its crash-exposed arm,
 `latent_jepa`'s 5 seeds range from 54.0 to 59.0 in cliff std-MSE, while the three general-purpose
 models' means lie between about 55 and 57. Seed spread is as large as the differences between
 architectures. This design compares general-purpose models with each other, so it is exposed to
 exactly that.
 
-**What resampling n seeds does.** The bootstrap treats the n observed seeds as the whole
-population. Its variance uses 1/n rather than 1/(n − 1), shrinking it by (n − 1)/n, and the
-percentile interval behaves roughly like a normal interval where a t interval with n − 1 degrees of
-freedom is correct:
+**Why not a bootstrap over seeds.** An earlier draft resampled each architecture's seeds with
+replacement, together with the states. Resampling n seeds treats them as the whole population:
+its spread is too small by about (n − 1)/n, and its percentile interval acts like a normal
+interval where a t interval with n − 1 degrees of freedom applies. With 10 seeds the seed part of
+the interval was about 18% too narrow. Phase 0 measured the consequence with stand-in models whose
+seeds disagree by a known amount (1,000 draws each, at the test set's size): with no true
+difference, G1 read *pass* in about 6% of runs once seeds disagreed by 20% or more on pushes, and
+twin pairs separated in about 9%. The same is reported for deep RL by Colas, Sigaud and Oudeyer
+(2018, *How Many Random Seeds?*): a bootstrap test over few runs gave about twice its nominal false
+positives, and they advise against it below 20 runs and recommend Welch's t-test.
 
-| | 5 seeds | 10 seeds |
-| --- | --- | --- |
-| correct multiplier, t with n − 1 df | 2.78 | 2.26 |
-| bootstrap, roughly 1.96 × √((n − 1)/n) | 1.75 | 1.86 |
-| seed part of the interval too narrow by | about 37% | about 18% |
-| distinct resamples per architecture | 126 | 92,378 |
-| smallest exact two-sided p, n vs n (permutation) | 2/252 ≈ 0.008 | 2/184,756 ≈ 0.00001 |
+**What Phase 0 found** (stand-ins; G1 reads *pass* with no true difference, and how often it finds
+a true 25% gap, at three levels of seed disagreement on pushes):
 
-With 5 seeds a correct exact test, after Holm over 6 pairs, can reach p < 0.05 only if every
-seed of one architecture beats every seed of the other (0.008 × 6 ≈ 0.048). The bootstrap's p can
-go down to 1/5,001, but that precision comes from treating 5 seeds as the population, not from
-the data. A 6th seed would fall outside the range of the first 5 one time in three, and the
-bootstrap never produces one that does.
+| | 10% | 20% | 40% |
+| --- | --- | --- | --- |
+| 10 seeds, bootstrap: false *pass* | 0.1% | 6.1% | 5.3% |
+| 10 seeds, Welch: false *pass* | 0.0% | 1.7% | 1.4% |
+| 20 seeds, Welch: false *pass* | 0.0% | 0.6% | 1.6% |
+| 10 seeds, Welch: finds a 25% gap | 97% | 76% | 19% |
+| 20 seeds, Welch: finds a 25% gap | 99% | 94% | 50% |
 
-**Why 10 and not more.** 10 seeds halves the narrowing and gives the seed resampling enough
-distinct outcomes to be meaningful. The rest is checked rather than removed: Phase 0's repeated
-stand-in twins (now with 10 "seeds") measure the false-alarm rate of the full procedure, and the
-real twin pairs show it on trained models. Going to 20 would double the medium-width runs again
-for a further narrowing from about 18% to about 9%.
+Welch's t-test keeps every false-alarm rate, including the twins', at about 5% or below; a t-based
+seed part added to a bootstrap over states gave the same rates, so resampling states adds nothing
+at this size. A calibrated test costs sensitivity when seeds disagree a lot; 20 seeds recovers most
+of it. How much trained seeds disagree on push interventions is not known before freeze 2 (on
+L_obs, Phase 0's trained seeds differed by 1% to 5%).
 
 **Why only at medium width.** G1, the gated test, uses the medium width. Small and large widths
-enter only secondary analyses and G2, which ranks runs rather than resampling seeds, so they keep
-5 seeds. Total: 80 main runs and 60 control runs, against 60 and 30 before, within the compute
-fallback in DESIGN.md (*Compute*).
+enter only secondary analyses and G2, which ranks runs rather than comparing seeds, so they keep
+5 seeds. Total: 120 main runs and 120 control runs, against 80 and 60 with 10 seeds.
 
-**Why the twins also have 10.** A negative control checks the same procedure on a pair with no
-real difference. It must be run at the same size as the comparison it guards, 10 seeds against
-10, or its false-alarm rate is not the main test's.
+**Why the twins also have 20.** A negative control checks the same procedure on a pair with no
+real difference. It must be run at the same size as the comparison it guards, 20 seeds against
+20, or its false-alarm rate is not the main test's.
 
 **Comparability with evm-intervene.** The first five seeds are evm-intervene's, and every run's
 results are in `seed_checkpoints`, so a 5-seed, states-only gap (evm-intervene's procedure) can be
@@ -224,7 +227,7 @@ model-based RL, so these choices rest on analogy, and the curves measure the poi
 - A state with more push actions weighs more in E_int, as in evm-intervene.
 - The reference is chosen after scoring so that Δ_int ≥ 0. Because the test is two-sided, this
   does not change p.
-- Seeds are resampled so that a difference between two training seeds of the same architecture
-  cannot pass as an architecture difference.
-- Everything except the seed resampling and the choice of reference follows evm-intervene; both
+- Architectures are compared over their seeds (Welch's t-test) so that a difference between two
+  training seeds of the same architecture cannot pass as an architecture difference.
+- Everything except the seed-level test and the choice of reference follows evm-intervene; both
   differences are in *Deliberate differences*.

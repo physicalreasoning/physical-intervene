@@ -22,7 +22,7 @@ of evm-intervene.
 | **Environment** | MuJoCo planar pushing: a 10 cm box and a round pusher driven by commanded velocity, 0.1 s control steps. The full simulator state is saved and restored bit-exactly in one pinned Docker image, so the true outcome of any action from any state costs microseconds. |
 | **Data** | A scripted policy pushes the box toward a hidden goal, with noise, and takes a uniform random action 20% of the time (less near the box if Phase 0's coverage check requires). 1,000 training and 100 validation episodes; every model trains on the same data. |
 | **Interventions** | 1,000 held-out states where the pusher is within 10 mm of the box. From each, 24 actions (12 aimed at the box, 12 uniform), each labelled by the simulator as *no contact*, *graze* or *push*. Only *push* is gated. |
-| **Models** | `mlp` and `gru` (architectures), `mlp-ms` (different objective: `mlp` trained on a multi-step loss), `contact_wm` (different structure: pushing physics written in, numbers learned). Three widths (10k, 100k, 1M parameters); 10 seeds at medium width, which G1 uses. Baselines: `copy`, `constvel`, `knn`. |
+| **Models** | `mlp` and `gru` (architectures), `mlp-ms` (different objective: `mlp` trained on a multi-step loss), `contact_wm` (different structure: pushing physics written in, numbers learned). Three widths (10k, 100k, 1M parameters); 20 seeds at medium width, which G1 uses. Baselines: `copy`, `constvel`, `knn`. |
 | **Controls** | Positive: `mlp` vs `mlp-shortcut`, trained to rely on the action less, so the gap is present by construction; how much less (p) is computed after the main runs from validation loss and the simulator, so it can reach V*. Negative: each architecture vs its twin on new seeds. Sanity: `blind`, which never sees the action it must predict the outcome of (a_t). All run through G1 on the test states. |
 | **Metrics** | L_obs: one-step std-MSE of the box's (Δx, Δy, Δθ) on validation transitions, the same for every model. E_int: the same error on push interventions. |
 | **Matching** | Every run trains its full budget, with no early stopping; G1 uses each run's checkpoint closest to V* = 1.1 × the largest architecture median of best L_obs, and the gap is also reported at other loss levels and at best checkpoints. Two architectures are matched if their L_obs differ by at most 5%. |
@@ -32,7 +32,7 @@ of evm-intervene.
 - **G0, validity.** All 1,000 states replay byte-identically; every main model beats `copy` on
   L_obs; `blind` is worse than `mlp` on push interventions.
 - **G1, matched separation (primary).** *Pass* if a matched pair differs in E_int with
-  Holm-adjusted p < 0.05, a 95% interval (resampling states and seeds) excluding zero, and a
+  Holm-adjusted p < 0.05 and a 95% interval excluding zero (Welch's t-test over the seeds), and a
   relative gap of at least 20%, and neither architecture's twin pair separates. A *fail* counts as
   evidence of no difference only if the positive control separated. Other readings:
   *inconclusive* (not shown specific, or not shown sensitive) and *not testable* (no pair matched).
@@ -68,8 +68,8 @@ These files explain or compare; they do not define the test and are not hashed i
 Where they and this file differ, this file governs.
 
 - [Why the design is as it is](background/RATIONALE.md): why planar pushing, why grazes are not
-  gated, why `contact_wm`, why the positive control's flaw is known and how p is computed, why 10
-  seeds, and why G1 uses one matched level with full training.
+  gated, why `contact_wm`, why the positive control's flaw is known and how p is computed, why 20
+  seeds and Welch's t-test, and why G1 uses one matched level with full training.
 - [Comparison with evm-intervene](background/EVM_COMPARISON.md): shared terms, deliberate
   differences, result-key mapping.
 - [Results file format](background/RESULTS_FORMAT.md): layout of
@@ -206,16 +206,16 @@ equal-observability rule, so a failure cannot come from missing inputs.
 | `mlp-ms` | `mlp`'s network. **Different objective:** trained on a weighted multi-step loss (Benechehab et al. 2024) instead of the shared one-step loss. From a true start, the model is rolled out open loop for 4 steps with the logged actions, its own predicted state fed back as s_t and into the history; the loss is the mean, with equal weights, of the shared loss on each step's state error, in units of the state change's scale (the first step is exactly the shared loss). Horizon and weights are fixed now, not tuned. Prediction and scoring are one-step, as for every model | main, different objective |
 | `contact_wm` | structured: hand-written contact geometry and a quasi-static pushing law, with a small trained correction network; every number learned from the training data (see below) | main, different structure |
 | `mlp-shortcut` | as `mlp`, but during training each transition's action input is replaced, with probability p, by that transition's *shadow action* (see *Controls*); at test time it gets the real a_t like every model | positive control |
-| `mlp-twin`, `gru-twin`, `mlp-ms-twin`, `contact_wm-twin` | the same architecture, settings and width as `mlp`, `gru`, `mlp-ms`, `contact_wm`, trained on 10 seeds of their own, 121 to 220 in steps of 11 | negative controls |
+| `mlp-twin`, `gru-twin`, `mlp-ms-twin`, `contact_wm-twin` | the same architecture, settings and width as `mlp`, `gru`, `mlp-ms`, `contact_wm`, trained on 20 seeds of their own, 231 to 440 in steps of 11 | negative controls |
 | `blind` | as `mlp` with a_t removed; the history keeps its 8 past actions, as for every model | sanity control |
 | `copy` | box does not move | baseline (evm's `copy`) |
 | `constvel` | box keeps its current velocity | baseline |
 | `knn` | mean Δs of the 5 nearest training transitions in standardised (s_t, a_t) | baseline |
 
-Main models: 4 architectures at 3 widths, 80 runs: 10 seeds at medium width (11 to 110 in steps
+Main models: 4 architectures at 3 widths, 120 runs: 20 seeds at medium width (11 to 220 in steps
 of 11), which G1 uses, and 5 seeds (11 to 55) at the small and large widths, which only secondary
-analyses and G2 use. The first five seeds are evm-intervene's (why 10: [RATIONALE.md](background/RATIONALE.md),
-*Why 10 seeds*). **Widths** are equal parameter counts
+analyses and G2 use. The first five seeds are evm-intervene's (why 20: [RATIONALE.md](background/RATIONALE.md),
+*Why 20 seeds and Welch's t-test*). **Widths** are equal parameter counts
 across architectures: about 10k, 100k and 1M parameters (small, medium, large); for `contact_wm`
 the count is that of its correction network.
 
@@ -230,7 +230,7 @@ spacing (the *plateau criterion*), plus 50%. Each final run reports whether it m
 criterion by its last checkpoint. Every run therefore reaches its own floor and continues past
 its best checkpoint, which matching at V* and the curves in *Secondary analyses* need. Why:
 [RATIONALE.md](background/RATIONALE.md), *Why one matched level, with full training*.
-Controls: medium width, 10 seeds each (60 runs); `blind` and `mlp-shortcut` use the main seeds, the twins use their own. Optimiser,
+Controls: medium width, 20 seeds each (120 runs); `blind` and `mlp-shortcut` use the main seeds, the twins use their own. Optimiser,
 learning rate, batch size and the number of updates are *set by pilot* on pilot and
 validation data only. Each architecture gets its own settings, chosen by the same pilot procedure and budget,
 and shared across its seeds and widths. **Every pilot choice minimises L_obs on validation data.**
@@ -341,11 +341,11 @@ from seed to seed than `mlp`.
 - The twins are kept out of everything else: V* is computed from the main runs only, and the
   twins are not in G2, in the main exclusions or in the Holm correction.
 - Each twin is held to the same rules as a main architecture: matched checkpoint closest to the
-  same V*, its own exclusions and its own 6-of-10-seeds rule. A twin dropped by that rule leaves
+  same V*, its own exclusions and its own 12-of-20-seeds rule. A twin dropped by that rule leaves
   its architecture's negative control *not run*, reported.
 - The states-only interval (evm-intervene's method) is also computed on each twin pair and
   reported. If it separates a twin pair that the full procedure does not, that shows directly why
-  this design resamples seeds.
+  this design compares architectures over their seeds.
 
 **Sanity control, `blind`.** A model that never sees a_t is known to do worse under
 intervention, so it does contain the gap, but at a much higher L_obs: it cannot pass the match
@@ -362,7 +362,7 @@ show the same on real trained models and the real test states.
 Fixed now, before training. All steps use validation data only. No test state exists yet.
 
 1. **Target.** For each medium-width main run, take its best L_obs over checkpoints, and the
-   median over the 10 seeds per architecture. V* = 1.1 × the largest of the four medians. Taking
+   median over the 20 seeds per architecture. V* = 1.1 × the largest of the four medians. Taking
    the largest median, plus a 10% margin, makes V* a level every architecture can reach.
 2. **Matched checkpoint.** Each medium run's matched checkpoint is the one whose L_obs is closest
    to V*.
@@ -370,8 +370,8 @@ Fixed now, before training. All steps use validation data only. No test state ex
    at most 5%: |L_a − L_b| / min(L_a, L_b) ≤ 0.05. Since every run aims at the same V*, most pairs
    should pass; the screen catches runs that could not get close.
 4. **Exclusions.** A run whose L_obs never comes within 5% of V* is excluded, and every exclusion
-   is reported. An architecture's matched L_obs, E_int and seed resampling then use its remaining
-   seeds. An architecture with fewer than 6 of its 10 seeds left (3 of 5 at the small and large widths)
+   is reported. An architecture's matched L_obs, E_int and its seed-level test then use its
+   remaining seeds. An architecture with fewer than 12 of its 20 seeds left (3 of 5 at the small and large widths)
    is dropped from G1 and reported;
    if that leaves fewer than two architectures, G1 is *not testable*.
 
@@ -390,13 +390,13 @@ published.
 2. **Every main model beats `copy` on L_obs**, at both its matched and best checkpoints (seed
    mean). Controls are not main models.
 3. **Sanity control.** On the push stratum, at best checkpoints, `blind` has a higher E_int
-   than `mlp`, with a 95% interval excluding zero (bootstrap over states and seeds, as in G1).
+   than `mlp`, with a 95% interval excluding zero (Welch's t-test over the seeds, as in G1).
    A model that never sees the action cannot answer "what if"; if the test cannot see that, it
    cannot see anything. This is not a positive control for G1 (see *Controls*).
 
 **Control pairs (read with G1).** Each control pair goes through the full G1 procedure on the
-test states: matched checkpoints at the same V*, the match screen, the same bootstrap over states
-and seeds, and the same thresholds (p < 0.05, interval excluding zero, relative gap ≥ 20%). Each
+test states: matched checkpoints at the same V*, the match screen, the same Welch's t-test over
+the seeds, and the same thresholds (p < 0.05, interval excluding zero, relative gap ≥ 20%). Each
 p is unadjusted, since each is a separate pre-specified check, and none enters the Holm
 correction of the main pairs. A control pair *separates* if it passes the match screen and meets
 all three thresholds.
@@ -428,13 +428,18 @@ checkpoints (see *Matching observational loss*):
    across states.
 2. **Gap.** The pair member with the lower E_int is the *reference*, the other the *challenger*.
    Δ_int = E_int(challenger) − E_int(reference), and the relative gap is Δ_int / E_int(reference).
-3. **Interval.** 5,000 bootstrap replicates. Each replicate resamples the held-out states with
-   replacement, the same draw for both models (paired), and resamples each architecture's seeds
-   with replacement, independently; then recomputes Δ_int. The 95% interval is the 2.5th to
-   97.5th percentile of these replicates.
-4. **p-value.** p = min(1, 2 × (min(#Δ* ≤ 0, #Δ* ≥ 0) + 1) / (5,000 + 1)), where Δ* are the
-   replicates. The 6 p-values are Holm-corrected together, including pairs that fail the match
-   screen.
+3. **Interval.** The unit of comparison is the seed. Each seed's E_int is its own std-MSE averaged
+   over all push transitions, pooled across states (their mean over seeds is E_int in step 1).
+   Welch's t-test compares the two architectures' per-seed values (n_a against n_b, variances not
+   assumed equal). The 95% interval is Δ_int ± t(0.975, ν) × √(s_a²/n_a + s_b²/n_b), with s the
+   standard deviation of the per-seed values and ν the Welch–Satterthwaite degrees of freedom. The
+   test states are the same for both and are held fixed: with 1,000 states their share of the
+   uncertainty is negligible (Phase 0: the same false-alarm and detection rates with and without
+   resampling them). Why a t-test over seeds and not a bootstrap:
+   [RATIONALE.md](background/RATIONALE.md), *Why 20 seeds and Welch's t-test*.
+4. **p-value.** Welch's two-sided p. The 6 p-values are Holm-corrected together, including pairs
+   that fail the match screen. A pair that cannot be tested because one of its architectures was
+   dropped (*Matching*, step 4) counts as p = 1, so the correction is always over 6.
 
 *Verdict:*
 
@@ -454,8 +459,10 @@ checkpoints (see *Matching observational loss*):
 
 *Also reported, not gated:*
 
-- `matched_push_gap_states_only`: the same test resampling states only, with seed means
-  fixed. This is evm-intervene's method and the issue's original interval.
+- `matched_push_gap_states_only`: the same gap with an interval that resamples states only, with
+  seed means fixed: 5,000 bootstrap replicates, each resampling the held-out states with
+  replacement (the same draw for both), p = min(1, 2 × (min(#Δ* ≤ 0, #Δ* ≥ 0) + 1) / 5,001). This
+  is evm-intervene's method and the issue's original interval.
 - `best_push_gap`: the same test at best checkpoints, as evm-intervene reports.
 - `matched_only`: true for a pair whose G1 result passes at V* but whose `best_push_gap`
   interval includes zero. It does not change `gate_g1_reading`: the issue asks whether models with
@@ -464,9 +471,10 @@ checkpoints (see *Matching observational loss*):
 
 *Note:* a state with more push actions weighs more in E_int. This is how the design reads the
 issue's "averaged over held-out states": transitions are pooled across states, as in
-evm-intervene and the shared reporting format, and the bootstrap resamples whole states.
+evm-intervene and the shared reporting format, and the states-only bootstrap resamples whole
+states.
 
-**G2. Rank correlation.** Spearman ρ(L_obs, E_int push) across the 80 main runs at their
+**G2. Rank correlation.** Spearman ρ(L_obs, E_int push) across the 120 main runs at their
 best checkpoints, with a 95% interval from 5,000 bootstrap resamples of runs. It is computed for
 both std-MSE and corner RMSE; **std-MSE is gated**. The reading uses the **point estimate**, as in
 evm-intervene (`gate_g2_obs_rank_decoupled`):
@@ -479,13 +487,14 @@ evm-intervene (`gate_g2_obs_rank_decoupled`):
 The interval is reported with every reading. A stricter flag, `decoupled_by_interval` (upper end
 of the interval < 0.50), is reported beside it and is not gated. Because `contact_wm` is expected
 to be best on L_obs (*Models*), it can raise ρ by being right on both axes; G2 over the
-general-purpose runs only is reported beside it (*Secondary analyses*). With 80 runs the interval is
+general-purpose runs only is reported beside it (*Secondary analyses*). With 120 runs the interval is
 wide, so a decoupled reading whose interval reaches 0.50 is stated as such in the write-up.
 
 ## Secondary analyses (not gated)
 
-- **Per-seed view:** each architecture's 10 per-seed E_int values on the push stratum, and for each
-  main pair an exact two-sided Mann-Whitney test on them (10 vs 10; smallest possible p = 2/184,756).
+- **Per-seed view:** each architecture's 20 per-seed E_int values on the push stratum, and for each
+  main pair an exact two-sided Mann-Whitney test on them (20 vs 20; a check on G1's t-test that does
+  not assume the per-seed values are near normal).
 - E_int on the no-contact stratum (every model should be near `copy`; a check, not a finding).
 - E_int on the graze stratum, and on all contact interventions (graze and push together), with
   G1 repeated on the latter for comparison.
@@ -496,12 +505,12 @@ wide, so a decoupled reading whose interval reaches 0.50 is stated as such in th
 - G1 without the architecture whose median sets V* (3 pairs, Holm over 3), with V* computed by
   the same rule from the other three medians, so that the model that sets the level for all pairs
   can be left out and the others compared later in training.
-- G2 over the general-purpose runs only (`mlp`, `gru`, `mlp-ms`; 60 runs). A structured model
+- G2 over the general-purpose runs only (`mlp`, `gru`, `mlp-ms`; 90 runs). A structured model
   whose built-in knowledge is right tends to be good on both L_obs and E_int and raises ρ; this
   reading cannot be driven by `contact_wm` in either direction.
 - **Gap along training.** Every saved checkpoint of every medium-width main run is scored on the
   push stratum, and each architecture's seed-mean E_int is plotted against L_obs, on raw and log
-  axes. For each main pair, the G1 procedure (matched checkpoints, bootstrap, interval) is repeated
+  axes. For each main pair, the G1 procedure (matched checkpoints, Welch's t-test, interval) is repeated
   at the shared levels 2 × V*, 1.5 × V*, V* and, if lower, the pair's own level V*_pair, computed
   by the *Matching* rule from the pair's two medians only. Reading, fixed now:
   *overlap* if the interval includes zero at every level (in this range, L_obs determines E_int);
@@ -533,7 +542,7 @@ a result. The plan is in [SMOKE_TEST.md](SMOKE_TEST.md); the record
    the sha256 of every file that generates data, trains or scores (including the MuJoCo scene
    file, `constants.py` and the model configurations), the MuJoCo, Python and torch
    versions, the image digest, the sha256 of the Phase 0 record, the smoke, train, validation
-   and pilot seeds, the main training seeds (11 to 110), the twin training seeds (121 to 220), the seed of the shadow-action
+   and pilot seeds, the main training seeds (11 to 220), the twin training seeds (231 to 440), the seed of the shadow-action
    stream, d_push and θ_push, and ε_near. The background files are not part of the freeze. Commit and
    push, and
    post the commit hash and this file's sha256 on forward#5. That comment's timestamp is
@@ -579,9 +588,9 @@ named above, including the gate readings `gate_g0_valid`, `gate_g1_reading`,
 Data generation is a few CPU-minutes. One-step training on 100,000 transitions takes minutes per
 run for `mlp` and `mlp-ms` (whose 4-step rollout costs about four forward passes) and tens of
 minutes for `gru` and `contact_wm` (whose sub-stepped geometry is slower per update) on one CPU
-core. 80 main runs plus 60 control runs (10 `blind`, 10
-`mlp-shortcut`, 40 twins) fit in three to five days of CPU, or one or two free
-Colab or Kaggle GPU sessions. The `mlp-shortcut` runs start only after the medium-width main runs
+core. 120 main runs plus 120 control runs (20 `blind`, 20 `mlp-shortcut`, 80 twins) take
+roughly five to eight days of CPU (an estimate scaled from the earlier 140 runs in three to five
+days; most added runs are at medium width), or two or three free Colab or Kaggle GPU sessions. The `mlp-shortcut` runs start only after the medium-width main runs
 have finished, since p needs their V*; they are among the fastest runs. D_obs on the validation
 transitions takes 10,000 × 100 one-step simulations, a few CPU-minutes. The pilot confirms this. If it does not, the large width is dropped,
 a fallback stated now. The twins are not dropped to save compute.

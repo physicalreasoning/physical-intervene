@@ -134,12 +134,12 @@ CHECKPOINT_DENSE_UNTIL_UPDATES = 2_000
 # Gap along training (DESIGN.md, Secondary analyses): shared levels as multiples of V*, plus the
 # pair's own V*_pair when lower.
 CURVE_LEVEL_FACTORS: tuple[float, ...] = (2.0, 1.5, 1.0)
-# Training seeds (docs/background/RATIONALE.md, Why 10 seeds). Medium width, which G1 uses, has 10;
-# small and large widths have the first 5, which are evm-intervene's seeds.
-MAIN_SEEDS: tuple[int, ...] = tuple(range(11, 111, 11))  # 11, 22, ..., 110
+# Training seeds (docs/background/RATIONALE.md, Why 20 seeds and Welch's t-test). Medium width, which
+# G1 uses, has 20; small and large widths have the first 5, which are evm-intervene's seeds.
+MAIN_SEEDS: tuple[int, ...] = tuple(range(11, 221, 11))  # 11, 22, ..., 220
 EVM_SEEDS: tuple[int, ...] = (11, 22, 33, 44, 55)
 SECONDARY_WIDTH_SEEDS: tuple[int, ...] = EVM_SEEDS
-TWIN_SEEDS: tuple[int, ...] = tuple(range(121, 221, 11))  # 121, 132, ..., 220
+TWIN_SEEDS: tuple[int, ...] = tuple(range(231, 441, 11))  # 231, 242, ..., 440
 
 # Target scaling: std floors for (dx m, dy m, dtheta rad).
 TARGET_STD_FLOORS = (1e-4, 1e-4, 1e-3)
@@ -147,11 +147,13 @@ TARGET_STD_FLOORS = (1e-4, 1e-4, 1e-3)
 # Matching and gates.
 MATCH_TARGET_FACTOR = 1.1  # V* = 1.1 x largest per-architecture median best L_obs
 MATCHED_LOSS_REL_TOL = 0.05
-BOOTSTRAP_REPLICATES = 5_000  # gated intervals and p-values (G1, G2)
+BOOTSTRAP_REPLICATES = 5_000  # G2's interval and the states-only interval
+# G1's interval and p (and those of the control pairs and G0.3): Welch's t-test on the per-seed E_int.
+G1_TEST = "welch_t_over_seeds"
 DESCRIPTIVE_BOOTSTRAP_REPLICATES = 2_000  # std_mse_ci95, matched_obs_val_ci95; as evm-intervene
 G1_ALPHA = 0.05
 G1_MIN_REL_GAP = 0.20
-G1_MIN_SEEDS_PER_ARCHITECTURE = 6  # of 10; fewer matched seeds left drops the architecture from G1
+G1_MIN_SEEDS_PER_ARCHITECTURE = 12  # of 20; fewer matched seeds left drops the architecture from G1
 G1_MIN_SEEDS_SECONDARY_WIDTHS = 3  # of 5, at the small and large widths
 G2_DECOUPLED_BELOW = 0.50
 G2_REFUTED_AT_OR_ABOVE = 0.80
@@ -263,3 +265,44 @@ PNN_LOGVAR_LIMIT_PENALTY = 0.01
 RSSM_DV3_FREE_NATS = 1.0
 RSSM_DV3_KL_DYN = 0.5
 RSSM_DV3_KL_REP = 0.1
+
+# ---------------------------------------------------------------------------------------------
+# Implementation settings chosen in Phase 0 (milestone 3): the intervention side with stand-ins.
+# Stand-ins only (SMOKE_TEST.md, No-leak rule); none of these values reaches a result.
+# ---------------------------------------------------------------------------------------------
+
+# Phase 0 milestone 3 attempt: results in results/phase0/milestone3/attemptN/, data it generates in
+# data/phase0/milestone3/attemptN/.
+# Attempt 0 had 10 seeds and a bootstrap over states and seeds; attempt 1 has 20 seeds and Welch's
+# t-test over the seeds.
+MILESTONE3_ATTEMPT = 1
+# Stand-in seeds: as many as the main models at medium width, so G1's seed-level test runs at its size.
+STANDIN_SEEDS: tuple[int, ...] = MAIN_SEEDS
+STANDIN_TWIN_SEEDS: tuple[int, ...] = TWIN_SEEDS
+# Seed-to-seed coefficient of variation of a stand-in's best L_obs: milestone 2's medium runs gave
+# 0.8% (gru) to 5.4% (contact_wm) over 3 seeds, about 3% pooled.
+STANDIN_OBS_SEED_CV = 0.03
+# Seed-to-seed coefficient of variation of a stand-in's E_int on push, set by the share of its error
+# that is a per-seed bias (cv = bias share x sqrt(2/3) for a 3-dimensional Gaussian bias). Guess:
+# about 3 times the observational spread, since pushes are rare in the training data. The
+# false-alarm rate is also measured at each value of STANDIN_FALSE_ALARM_SEED_CVS.
+STANDIN_PUSH_SEED_CV = 0.10
+STANDIN_FALSE_ALARM_SEED_CVS: tuple[float, ...] = (0.0, 0.03, 0.10, 0.20, 0.40)
+# A stand-in's expected std-MSE on push interventions, as a multiple of its L_obs at the same
+# checkpoint (milestone 2: contact steps had about 2.2 times the overall validation error at final
+# checkpoints; interventions are less usual). The gates are scale-free, so this sets units only.
+STANDIN_PUSH_OVER_OBS = 3.0
+# Per-transition difficulty on push: each push transition's expected error is scaled by
+# (1 - w) + w x its true target's squared size over the mean, the same for every stand-in, so states
+# differ in difficulty and the paired state resampling matters. w is this share.
+STANDIN_DIFFICULTY_SHARE = 0.5
+# Repeated pairs (SMOKE_TEST.md): draws per pair, the twin false-alarm ceiling, the detection floor
+# for noisy-b, and noisy-c's true relative gap.
+SMOKE_REPEATED_PAIRS = 200
+SMOKE_MAX_FALSE_ALARM_RATE = 0.05
+# Twins: the share of repeated draws whose full interval excludes zero (the interval's calibration).
+SMOKE_MAX_TWIN_INTERVAL_EXCLUDES_ZERO = 0.10
+# noisy-b and noisy-c: the share of repeated draws whose interval covers the known gap.
+SMOKE_MIN_KNOWN_GAP_COVERAGE = 0.90
+SMOKE_MIN_DETECTION_RATE = 0.95
+SMOKE_NEAR_THRESHOLD_REL_GAP = 0.25

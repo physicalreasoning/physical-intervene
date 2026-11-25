@@ -1,0 +1,68 @@
+{
+ "draws": 1000,
+ "bootstrap_replicates": 5000,
+ "note": "twins (no true difference), fresh draws: keys from 100,000, not overlapping the 200-draw runs",
+ "0.1": {
+  "n": 1000,
+  "rate_full": 0.0,
+  "rate_states_only": 0.0,
+  "interval_excludes_zero_full": 0.064,
+  "interval_excludes_zero_states_only": 0.702,
+  "known_gap_coverage_full": 0.946,
+  "rel_gap_true": 0.0,
+  "rel_gap_mean_estimated": -0.0001537657615726768,
+  "bias_share": 0.12247448713915891,
+  "separates_ci95": [
+   0.0,
+   0.003682083896865671
+  ],
+  "p_separates_above_5pct": 1.0,
+  "excludes_zero_ci95": [
+   0.049633089291849,
+   0.08099507436705103
+  ],
+  "seconds": 112.84580587502569
+ },
+ "0.2": {
+  "n": 1000,
+  "rate_full": 0.043,
+  "rate_states_only": 0.052,
+  "interval_excludes_zero_full": 0.085,
+  "interval_excludes_zero_states_only": 0.842,
+  "known_gap_coverage_full": 0.914,
+  "rel_gap_true": 0.0,
+  "rel_gap_mean_estimated": 0.0005442341191801226,
+  "bias_share": 0.24494897427831783,
+  "separates_ci95": [
+   0.0312911704560926,
+   0.057486257961972334
+  ],
+  "p_separates_above_5pct": 0.8628672954505403,
+  "excludes_zero_ci95": [
+   0.06845727877099014,
+   0.10403198577837726
+  ],
+  "seconds": 111.61481224978343
+ },
+ "0.4": {
+  "n": 1000,
+  "rate_full": 0.092,
+  "rate_states_only": 0.312,
+  "interval_excludes_zero_full": 0.092,
+  "interval_excludes_zero_states_only": 0.931,
+  "known_gap_coverage_full": 0.907,
+  "rel_gap_true": 0.0,
+  "rel_gap_mean_estimated": 0.007157535248989255,
+  "bias_share": 0.48989794855663565,
+  "separates_ci95": [
+   0.07480844517785548,
+   0.11163577251831965
+  ],
+  "p_separates_above_5pct": 2.602371401427399e-08,
+  "excludes_zero_ci95": [
+   0.07480844517785548,
+   0.11163577251831965
+  ],
+  "seconds": 109.88283329224214
+ }
+}

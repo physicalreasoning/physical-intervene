@@ -1,0 +1,254 @@
+{
+ "phase": "phase0",
+ "status": "complete: every gated Phase 0 check ran; see failed_checks and open issues in the report",
+ "freeze1_values": {
+  "d_push_m": 0.002,
+  "theta_push_deg": 1.0,
+  "epsilon_near": 0.05,
+  "smoke_attempt": 2,
+  "smoke_seeds": {
+   "split_ranges": {
+    "train": [
+     1000000,
+     2000000
+    ],
+    "validation": [
+     2000000,
+     3000000
+    ],
+    "smoke": [
+     3000000,
+     4000000
+    ],
+    "pilot": [
+     4000000,
+     5000000
+    ]
+   },
+   "smoke_attempt": 2,
+   "smoke_episodes": [
+    3600000,
+    3600049
+   ],
+   "coverage_pool": [
+    3700000,
+    3700999
+   ],
+   "test_like_states": [
+    3800000,
+    3800199
+   ],
+   "skipped_state_seeds": [],
+   "stream_keys": {
+    "init": 0,
+    "goal": 1,
+    "eps": 2,
+    "noise": 3,
+    "uniform": 4,
+    "shadow_eps": 5,
+    "shadow_noise": 6,
+    "shadow_uniform": 7,
+    "select": 8,
+    "interventions": 9,
+    "feasibility_eps": 10,
+    "feasibility_noise": 11,
+    "feasibility_uniform": 12
+   }
+  },
+  "push_threshold_decision": "defaults kept: no gap between grazes and pushes",
+  "graze_share_of_contacts": 0.395114006514658
+ },
+ "reruns": [
+  {
+   "milestone": 1,
+   "attempt": 0,
+   "folder": "results/phase0/milestone1/attempt0/",
+   "reason": "first run, epsilon_near 0.2",
+   "outcome": "intervention coverage failed (T 0.066 on the earlier distance, needs 0.25); the other gated checks passed"
+  },
+  {
+   "milestone": 1,
+   "attempt": 1,
+   "folder": "results/phase0/milestone1/attempt1/",
+   "reason": "rerun on new smoke seeds: coverage measure replaced (action novelty given the state), epsilon_near lowered to 0.05",
+   "outcome": "every check passed"
+  },
+  {
+   "milestone": 1,
+   "attempt": 2,
+   "folder": "results/phase0/milestone1/attempt2/",
+   "reason": "rerun on new smoke seeds: push label measured against the no-contact reference (a box already sliding is not counted as pushed by a light touch)",
+   "outcome": "every check passed; bit-exact replay also on real amd64 hardware"
+  },
+  {
+   "milestone": 2,
+   "attempt": 0,
+   "folder": "results/phase0/milestone2/attempt0/",
+   "reason": "first run, with rssm as the fourth architecture and checkpoints every 100 updates",
+   "outcome": "rssm learned slowest, set V* and failed two checks; contact_wm skipped the band around V* between two checkpoints"
+  },
+  {
+   "milestone": 2,
+   "attempt": 1,
+   "folder": "results/phase0/milestone2/attempt1/",
+   "reason": "mlp-ms in place of rssm; checkpoints every 10 updates to 1,000, every 100 to 2,000, then every 1,000",
+   "outcome": "every training-side check passed"
+  },
+  {
+   "milestone": 3,
+   "attempt": 0,
+   "folder": "results/phase0/milestone3/attempt0/",
+   "reason": "first run of the intervention side with stand-ins (10 seeds, bootstrap over states and seeds)",
+   "outcome": "every check passed after two SMOKE_TEST.md wordings (single-draw twin interval; constvel); G1's interval found too narrow when seeds disagree a lot on pushes (up to 9% false alarms)"
+  },
+  {
+   "milestone": 3,
+   "attempt": 1,
+   "folder": "results/phase0/milestone3/attempt1/",
+   "reason": "design change: 20 seeds per architecture and Welch's t-test over the seeds for G1",
+   "outcome": "see intervention_checks"
+  }
+ ],
+ "environment_checks": {
+  "attempt": 2,
+  "gated": {
+   "bit_exact_replay": true,
+   "push_thresholds": null,
+   "pusher_can_move_box": true,
+   "push_rate": true,
+   "push_label_diagnostic": null,
+   "contact_coverage": null,
+   "intervention_coverage": true,
+   "policy_log_density": null,
+   "shadow_actions": true,
+   "positive_control_feasibility": null,
+   "compute": null
+  },
+  "amd64_replay": true,
+  "push_rate": {
+   "frac_states_with_push": 0.925,
+   "mean_push_per_state": 9.285
+  },
+  "intervention_coverage_T": 0.3462574044157243,
+  "positive_control_feasibility": {
+   "D_obs": 0.06550947686386115,
+   "D_int": 0.5424097862862248,
+   "D_int_over_D_obs": 8.279867467319827
+  }
+ },
+ "training_checks": {
+  "attempt": 1,
+  "summary": {
+   "1_data": true,
+   "2_wiring": true,
+   "3_overfit_64": true,
+   "3_losses_fall": true,
+   "3_beats_baselines": true,
+   "3_matching": true,
+   "3_budget": true,
+   "3_reproducibility": true
+  }
+ },
+ "intervention_checks": {
+  "attempt": 1,
+  "summary": {
+   "no_leak": true,
+   "oracle": true,
+   "copy": true,
+   "noisy_a_vs_a_prime": true,
+   "noisy_a_vs_b": true,
+   "matching": true,
+   "verdict_logic": true,
+   "control_readings": true,
+   "gap_along_training": true,
+   "g2_readings": true,
+   "untrained_network": true,
+   "standin_run": true,
+   "format": true,
+   "repeated_pairs": true
+  },
+  "standin_scales": {
+   "obs_seed_cv": 0.03,
+   "push_seed_cv": 0.1,
+   "push_bias_share": 0.12247448713915891,
+   "push_over_obs": 3.0,
+   "difficulty_share": 0.5,
+   "noisy_b_ratio": 1.5,
+   "noisy_b_rel_gap_expected": 1.0969068910760513,
+   "noisy_c_ratio": 1.1335307679158821,
+   "noisy_c_rel_gap_expected": 0.25,
+   "how_set": "obs_seed_cv from milestone 2's best L_obs over 3 medium seeds per architecture (0.8% to 5.4%); push_seed_cv a guess at 3 times that, with the false-alarm rate also measured at [0.0, 0.03, 0.1, 0.2, 0.4]",
+   "bootstrap_replicates": 5000
+  },
+  "repeated_pairs": {
+   "draws": 200,
+   "twins_false_alarm_full": 0.0,
+   "twins_false_alarm_states_only": 0.0,
+   "twins_interval_excludes_zero_full": 0.065,
+   "twins_interval_excludes_zero_states_only": 0.745,
+   "noisy_c_detection_full": 0.92,
+   "noisy_b_detection_full": 1.0,
+   "false_alarm_by_seed_cv": {
+    "0": {
+     "full": 0.0,
+     "states_only": 0.0
+    },
+    "0.03": {
+     "full": 0.0,
+     "states_only": 0.0
+    },
+    "0.1": {
+     "full": 0.0,
+     "states_only": 0.0
+    },
+    "0.2": {
+     "full": 0.005,
+     "states_only": 0.005
+    },
+    "0.4": {
+     "full": 0.05,
+     "states_only": 0.115
+    }
+   }
+  }
+ },
+ "failed_checks": [],
+ "records_sha256": {
+  "results/phase0/milestone1/attempt2/env_checks.json": "29986aceb0c309b2be927e3f6484af876714020b300e94074fcbd1f140cb22e0",
+  "results/phase0/milestone1/attempt2/amd64_replay.json": "362fae4c02824e2744b83d7af9a0bd3454b51a26ce1c8515dcdb9afda82b6247",
+  "results/phase0/milestone2/attempt1/training_checks.json": "df876baba8cdc3b1850fe29624c7cff183b75a007d9dc501d52433addeaff726",
+  "results/phase0/milestone3/attempt1/intervention_checks.json": "201ca5b122aee283b22222c32fdd4f3eff3db23ae2c0a1a92c65ba26fd8e66b8",
+  "results/phase0/milestone3/attempt1/intervention_results_standin.json": "e3bb0dee18b01ffbf61004e7a36134f33190a9074aae551708534422764da701"
+ },
+ "quantities_computed": {
+  "training_side": [
+   "data checks: alignment, target and angle wrap, scaler from the training split only, split overlap",
+   "baselines copy, constvel and knn: L_obs on the validation transitions (recorded actions)",
+   "training loss and L_obs (with corner RMSE) at every checkpoint of every learning run, recorded actions only",
+   "L_obs on validation transitions split by contact label and by box motion (log entry, ad hoc, not kept)",
+   "made-up-target training losses (zero, action, history, smooth function; contact_wm and mlp-ms variants)",
+   "overfit loss on 64 examples",
+   "contact_wm's learned physical values",
+   "mlp-shortcut swapped share (stand-in p 0.5); controls trained, not scored",
+   "V*-like level, matched checkpoints, exclusions and match screen on smoke runs",
+   "plateau criterion; reproducibility of curves; timings",
+   "exploration: pnn and rssm-dv3 L_obs curves and made-up targets"
+  ],
+  "intervention_side": [
+   "simulator only (milestone 1): replay of the 25 actions at each smoke state, push thresholds and labels, push rate, intervention coverage, policy log-density, shadow actions, D_obs and D_int (positive-control feasibility)",
+   "stand-ins (milestone 3, attempts 0 and 1): oracle, copy and constvel (fixed rules) and noisy stand-in families scored on validation transitions and on all 25 actions at every smoke state: L_obs, std-MSE per stratum, corner and angle errors, logged-action reference",
+   "untrained networks (mlp, gru, mlp-ms, contact_wm, 3 seeds each, trained: false): L_obs, through the scoring entry point; their push std-MSE was computed in earlier runs, never reported, and deleted",
+   "with stand-ins only: V*, matching, exclusions, match screen, gaps, intervals (seed-level; states only), p, Holm, G0.2, G0.3, G1, control pairs and readings, G2, best_push_gap, matched_only, gap along training, G1 without the V*-setting architecture, G2 over the general-purpose runs, per-seed view",
+   "repeated stand-in pairs (twins, noisy-c, noisy-b, false alarm at several bias scales): separation rates",
+   "exploration with stand-ins: G1's false-alarm rate and power for several interval methods, at 200 and 1,000 states, with 10 and 20 seeds",
+   "the stand-in run's result JSON and its format check"
+  ]
+ },
+ "never_computed": [
+  "the intervention error (any stratum) of any trained model, main or control",
+  "any gap, G1, G2 or control-pair result between trained models",
+  "any measure of a trained model's reliance on the action using real-style data",
+  "anything on pilot seeds or test states"
+ ],
+ "report": "results/phase0/REPORT_phase0.md"
+}
