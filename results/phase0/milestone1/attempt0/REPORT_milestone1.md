@@ -1,7 +1,7 @@
 # Phase 0, milestone 1: simulator and environment checks
 
 **Attempt 0 (ε_near = 0.2), superseded by attempt 1** (`../attempt1/REPORT_attempt1.md`). Its files
-were moved from `results/phase0/` to `results/phase0/attempt0/` and its data to `data/smoke/attempt0/`.
+were moved from `results/phase0/` to `results/phase0/milestone1/attempt0/` and its data to `data/phase0/milestone1/attempt0/`.
 
 Branch `phase0-simulator` (from `smoke-test`), not committed. Simulator and scripted policy only:
 no model of any kind was built, trained or run. Smoke seeds only; no pilot, train, validation or
@@ -45,9 +45,9 @@ Commands to run:
 ```bash
 uv run python scripts/phase0_env.py --docker-replay results/phase0/docker_replay.json
 docker build --platform linux/amd64 -t physical-intervene:phase0 .
-docker run --rm --platform linux/amd64 -v "$PWD/data/docker:/out" physical-intervene:phase0 \
+docker run --rm --platform linux/amd64 -v "$PWD/data/phase0/milestone1/attempt0/docker:/out" physical-intervene:phase0 \
   python scripts/replay_check.py --generate /out/states.npz
-docker run --rm --platform linux/amd64 -v "$PWD/data/docker:/out" physical-intervene:phase0 \
+docker run --rm --platform linux/amd64 -v "$PWD/data/phase0/milestone1/attempt0/docker:/out" physical-intervene:phase0 \
   python scripts/replay_check.py --check /out/states.npz
 ```
 

@@ -53,6 +53,10 @@ class ElboTerms:
     recon_sq: torch.Tensor  # mean squared standardised error of the decoded mean (diagnostic)
 
 
+def _detach(g: Gaussian) -> Gaussian:
+    return Gaussian(g.mean.detach(), g.std.detach())
+
+
 class RSSM(WorldModel):
     arch = "rssm"
     stochastic = True
@@ -68,6 +72,9 @@ class RSSM(WorldModel):
         self.kl_weight = c.RSSM_KL_WEIGHT
         self.n_samples = c.RSSM_PREDICTION_SAMPLES
         self.sampling_seed = 0  # set per run by train.py; recorded in the checkpoint
+        # Exploration only: (dynamics, representation) weights for DreamerV3's KL balancing; None
+        # keeps the design's single KL term.
+        self.kl_balance: tuple[float, float] | None = None
 
     @staticmethod
     def _gaussian(out: torch.Tensor) -> Gaussian:
@@ -115,19 +122,28 @@ class RSSM(WorldModel):
         """ELBO terms on a window. target_z[:, k] is the standardised change into state k, scored
         where scored[:, k] is 1 (never at the first step, which has no previous state)."""
         steps, _, _ = self.filter(states, prev_a, mask, generator)
-        recon, kl, sq = [], [], []
+        recon, kl, kl_dyn, kl_rep, sq = [], [], [], [], []
         for k, (h, z, prior, post) in enumerate(steps):
             err = (self.decode(h, z) - target_z[:, k]) / c.RSSM_OBS_STD
             recon.append(0.5 * (err * err).sum(-1))
             sq.append((err * err).mean(-1))
             kl.append(kl_divergence(post, prior))
+            if self.kl_balance is not None:
+                kl_dyn.append(kl_divergence(_detach(post), prior))
+                kl_rep.append(kl_divergence(post, _detach(prior)))
         recon_t, kl_t, sq_t = torch.stack(recon, 1), torch.stack(kl, 1), torch.stack(sq, 1)
         w = scored / scored.sum()
-        kl_clip = torch.clamp(kl_t, min=self.free_nats)
-        r, k_, kc = (recon_t * w).sum(), (kl_t * w).sum(), (kl_clip * w).sum()
-        return ElboTerms(
-            recon=r, kl=k_, kl_clipped=kc, loss=r + self.kl_weight * kc, recon_sq=(sq_t * w).sum()
-        )
+        r, k_ = (recon_t * w).sum(), (kl_t * w).sum()
+        if self.kl_balance is None:
+            kc = (torch.clamp(kl_t, min=self.free_nats) * w).sum()
+            loss = r + self.kl_weight * kc
+        else:
+            b_dyn, b_rep = self.kl_balance
+            dyn = (torch.clamp(torch.stack(kl_dyn, 1), min=self.free_nats) * w).sum()
+            rep = (torch.clamp(torch.stack(kl_rep, 1), min=self.free_nats) * w).sum()
+            kc = (b_dyn * dyn + b_rep * rep) / (b_dyn + b_rep)
+            loss = r + b_dyn * dyn + b_rep * rep
+        return ElboTerms(recon=r, kl=k_, kl_clipped=kc, loss=loss, recon_sq=(sq_t * w).sum())
 
     @staticmethod
     def window_inputs(b: Batch) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -146,6 +162,21 @@ class RSSM(WorldModel):
 
     def forward(self, b: Batch) -> torch.Tensor:
         return self.predict_z(b)
+
+    def predict_mean(self, b: Batch) -> torch.Tensor:
+        """Deterministic prediction (exploration only): posterior means while filtering, the
+        prior's mean at the predicted step."""
+        states, prev_a, mask = self.window_inputs(b)
+        B, K, _ = states.shape
+        h = states.new_zeros(B, self.units)
+        z = states.new_zeros(B, self.latent)
+        for k in range(K):
+            h_new = self.cell(torch.cat([z, prev_a[:, k]], dim=-1), h)
+            z_new = self.posterior(h_new, states[:, k]).mean
+            m = mask[:, k : k + 1]
+            h, z = m * h_new + (1 - m) * h, m * z_new + (1 - m) * z
+        h1 = self.cell(torch.cat([z, b.a_n], dim=-1), h)
+        return self.decode(h1, self.prior(h1).mean)
 
     def predict_z(self, b: Batch, generator: torch.Generator | None = None) -> torch.Tensor:
         if generator is None:

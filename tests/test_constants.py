@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from physical_intervene import constants as c
 
 
@@ -108,9 +110,22 @@ def test_training_budget_rule_is_valid() -> None:
 
 
 def test_checkpoint_schedule() -> None:
-    assert 0 < c.CHECKPOINT_DENSE_EVERY_UPDATES < c.CHECKPOINT_EVERY_UPDATES
+    assert 0 < c.CHECKPOINT_FINE_EVERY_UPDATES < c.CHECKPOINT_DENSE_EVERY_UPDATES < c.CHECKPOINT_EVERY_UPDATES
+    assert c.CHECKPOINT_FINE_UNTIL_UPDATES % c.CHECKPOINT_DENSE_EVERY_UPDATES == 0
+    assert c.CHECKPOINT_FINE_UNTIL_UPDATES < c.CHECKPOINT_DENSE_UNTIL_UPDATES
     assert c.CHECKPOINT_DENSE_UNTIL_UPDATES % c.CHECKPOINT_EVERY_UPDATES == 0
     assert c.CHECKPOINT_EVERY_UPDATES % c.CHECKPOINT_DENSE_EVERY_UPDATES == 0
+
+
+def test_checkpoint_schedule_steps() -> None:
+    pytest.importorskip("torch")
+    from physical_intervene.train import checkpoint_schedule
+
+    s = checkpoint_schedule(12_000)
+    assert s[:3] == [10, 20, 30] and 1_000 in s and 990 in s and 1_010 not in s
+    assert [u for u in s if 1_000 < u <= 2_000] == list(range(1_100, 2_001, 100))
+    assert [u for u in s if u > 2_000] == list(range(3_000, 12_001, 1_000))
+    assert checkpoint_schedule(1_234)[-1] == 1_234
 
 
 def test_curve_levels_end_at_v_star() -> None:

@@ -14,7 +14,7 @@ restored and re-run under any action, so every intervention has an exact, cheap 
 Contact between pusher and box is the hard case: rare in routine data, and where the action
 matters most.
 
-- **Models:** an MLP, a GRU, a small RSSM and a structured model with pushing rules built in
+- **Models:** an MLP, a GRU, an MLP trained on a multi-step loss and a structured model with pushing rules built in
   (`contact_wm`, the counterpart of evm-intervene's `conservation_wm`), trained on the same
   observational data, plus a
   positive control with a known gap built in at matched loss (`mlp-shortcut`), negative controls
@@ -53,9 +53,11 @@ design.
 | `src/physical_intervene/constants.py` | every fixed value from the design, in one place |
 | `tests/` | unit tests |
 | `scripts/check_docs.py` | docs checks run in CI: relative links resolve, no em dashes |
+| `results/phase0/` | Phase 0 records, by milestone and attempt (see its README) |
 | `scripts/phase0_env.py` | Phase 0: smoke data and the environment checks (simulator only) |
 | `scripts/phase0_training.py` | Phase 0: the training-side checks (data, wiring, learning, compute); needs the `models` extra |
-| `scripts/phase0_rssm_prediction_rules.py` | Phase 0: rescores saved rssm checkpoints under other prediction rules (run after `phase0_training.py`) |
+| `scripts/phase0_model_exploration.py` | Phase 0 exploration: candidates for the model with a different objective (rssm with DreamerV3's KL terms, a Gaussian NLL network, `mlp-ms`), compared on smoke data |
+| `scripts/phase0_rssm_prediction_rules.py` | Phase 0 exploration: rescores the first draft's rssm checkpoints under other prediction rules |
 
 Planned, following evm-intervene: `src/physical_intervene/` simulator, models, baselines and
 metrics; `scripts/` for data generation, training, scoring and freezing; `frozen/` for the

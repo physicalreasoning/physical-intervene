@@ -100,5 +100,5 @@ $ python scripts/check_docs.py
 (no output, exit 0)
 ```
 
-Run: `uv run python scripts/phase0_env.py --docker-replay results/phase0/attempt1/docker_replay.json`
+Run: `uv run python scripts/phase0_env.py --docker-replay results/phase0/milestone1/attempt1/docker_replay.json`
 with `SMOKE_ATTEMPT = 1` and `POLICY_EPSILON_NEAR = 0.05` in `constants.py`.

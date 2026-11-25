@@ -49,15 +49,18 @@ def stream_seed(seed: int, purpose: str) -> int:
 
 
 def checkpoint_schedule(updates: int) -> list[int]:
+    fine = range(
+        c.CHECKPOINT_FINE_EVERY_UPDATES, c.CHECKPOINT_FINE_UNTIL_UPDATES + 1, c.CHECKPOINT_FINE_EVERY_UPDATES
+    )
     dense = range(
-        c.CHECKPOINT_DENSE_EVERY_UPDATES,
+        c.CHECKPOINT_FINE_UNTIL_UPDATES + c.CHECKPOINT_DENSE_EVERY_UPDATES,
         c.CHECKPOINT_DENSE_UNTIL_UPDATES + 1,
         c.CHECKPOINT_DENSE_EVERY_UPDATES,
     )
     sparse = range(
         c.CHECKPOINT_DENSE_UNTIL_UPDATES + c.CHECKPOINT_EVERY_UPDATES, updates + 1, c.CHECKPOINT_EVERY_UPDATES
     )
-    sched = [u for u in dense if u <= updates] + list(sparse)
+    sched = [u for u in (*fine, *dense) if u <= updates] + list(sparse)
     if not sched or sched[-1] != updates:
         sched.append(updates)  # the final update is always a checkpoint
     return sched
@@ -79,6 +82,7 @@ class TrainConfig:
     loss_dims: list[int] | None = None  # made-up checks only: restrict the loss to these dims
     target_name: str = "real"
     tag: str = ""
+    rssm_variant: str = "design"  # exploration only: "dv3" uses DreamerV3's KL terms
 
 
 @dataclass
@@ -136,6 +140,12 @@ class TrainData:
             return full
         t = torch.as_tensor(idx)
         return Batch(*(x[t] for x in full.__dict__.values()))
+
+    def batch_delta(self, idx: np.ndarray) -> torch.Tensor:
+        """True state change of training examples, physical units (float32)."""
+        if "train_delta" not in self._cache:
+            self._cache["train_delta"] = torch.as_tensor(self.delta, dtype=torch.float32)
+        return self._cache["train_delta"][torch.as_tensor(idx)]
 
     def z(self, idx: np.ndarray) -> torch.Tensor:
         self.batch()
@@ -222,6 +232,33 @@ def fit_loss(model: WorldModel, td: TrainData, idx: np.ndarray, loss_dims: list[
 # Training -----------------------------------------------------------------------------------------
 
 
+def multi_step_loss(model: WorldModel, td: TrainData, idx: np.ndarray, w: torch.Tensor) -> torch.Tensor:
+    """mlp-ms's training loss (DESIGN.md, Target and loss): an open-loop rollout of
+    MULTI_STEP_HORIZON steps from the true start idx.
+
+    Step h feeds back the model's own predicted state as s and into the history (with the true
+    action of the step before), takes the true action a_{t+h}, and is scored on the state error
+    (s_hat_{t+h+1} - s_{t+h+1}) / delta scale with the shared per-dimension weights. At h = 0 this is
+    exactly the shared one-step loss. idx must leave MULTI_STEP_HORIZON - 1 steps in the episode."""
+    n = td.norm
+    s_mean, s_std = (torch.as_tensor(x, dtype=torch.float32) for x in (n.s_mean, n.s_std))
+    d_mean, d_scale = (torch.as_tensor(x, dtype=torch.float32) for x in (td.dscaler.mean, td.dscaler.scale))
+    b = td.batch(idx)
+    s, s_n, hs_n, ha_n, mask = b.s, b.s_n, b.hs_n, b.ha_n, b.mask
+    total = torch.zeros(())
+    for h, alpha in enumerate(c.MULTI_STEP_WEIGHTS):
+        bh = td.batch(idx + h)  # true action and true next state of step t + h
+        step = Batch(s_n, hs_n, ha_n, mask, bh.a_n, s, bh.a)
+        s_next = s + model(step) * d_scale + d_mean
+        err = (s_next - (bh.s + td.batch_delta(idx + h))) / d_scale
+        total = total + alpha * ((err * err) * w).sum(-1).mean()
+        hs_n = torch.cat([hs_n[:, 1:], s_n[:, None]], dim=1)
+        ha_n = torch.cat([ha_n[:, 1:], bh.a_n[:, None]], dim=1)
+        mask = torch.cat([mask[:, 1:], mask.new_ones(len(idx), 1)], dim=1)
+        s, s_n = s_next, (s_next - s_mean) / s_std
+    return total
+
+
 def rssm_windows(td: TrainData, e: np.ndarray, t0: np.ndarray, length: int) -> tuple[torch.Tensor, ...]:
     """Windows of HISTORY_LEN burn-in states plus `length` scored transitions from step t0.
 
@@ -250,6 +287,11 @@ def train(cfg: TrainConfig, td: TrainData, ckpt_dir: Path | None = None, evaluat
     model = build(cfg.arch, cfg.width, td.norm, td.dscaler)
     if cfg.arch == "rssm":
         model.sampling_seed = stream_seed(cfg.seed, "rssm_predict")
+        if cfg.rssm_variant == "dv3":
+            model.free_nats = c.RSSM_DV3_FREE_NATS
+            model.kl_balance = (c.RSSM_DV3_KL_DYN, c.RSSM_DV3_KL_REP)
+        elif cfg.rssm_variant != "design":
+            raise ValueError(f"unknown rssm variant {cfg.rssm_variant}")
     rng_batch = np.random.default_rng(stream_seed(cfg.seed, "batch"))
     rng_swap = np.random.default_rng(stream_seed(cfg.seed, "shortcut"))
     gen_rssm = torch.Generator().manual_seed(stream_seed(cfg.seed, "rssm_train"))
@@ -259,6 +301,8 @@ def train(cfg: TrainConfig, td: TrainData, ckpt_dir: Path | None = None, evaluat
     w = loss_weights(cfg.loss_dims)
     schedule = cfg.checkpoint_every or checkpoint_schedule(cfg.updates)
     pool = np.arange(len(td.train)) if td.subset is None else td.subset
+    if cfg.arch == "mlp-ms":  # starts that leave the rollout inside the episode
+        pool = pool[td.train.step[pool] <= td.split.steps - c.MULTI_STEP_HORIZON]
     swapped = drawn = 0
     if cfg.arch == "mlp-shortcut":
         if cfg.shortcut_p is None or td.split.shadow is None:
@@ -310,7 +354,12 @@ def train(cfg: TrainConfig, td: TrainData, ckpt_dir: Path | None = None, evaluat
                 st = torch.as_tensor(swap)[:, None]
                 ti = torch.as_tensor(idx)
                 b = b.with_action(torch.where(st, shadow_raw[ti], b.a), torch.where(st, shadow_n[ti], b.a_n))
-            loss = weighted_loss(model(b), td.z(idx), w)
+            if cfg.arch == "pnn":
+                loss = model.nll(b, td.z(idx), w)
+            elif cfg.arch == "mlp-ms":
+                loss = multi_step_loss(model, td, idx, w)
+            else:
+                loss = weighted_loss(model(b), td.z(idx), w)
         opt.zero_grad(set_to_none=True)
         loss.backward()
         opt.step()

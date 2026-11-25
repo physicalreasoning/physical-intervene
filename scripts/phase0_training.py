@@ -3,10 +3,11 @@ and the training time part of Compute).
 
     uv run --extra models python scripts/phase0_training.py [--workers 8] [--quick]
 
-Reads data/smoke/attemptK/{coverage_pool,episodes}.npz (never states.npz) and writes
-results/phase0/milestone2/training_checks.json and plots/, with checkpoints under
-data/phase0/milestone2/checkpoints/ (gitignored). Training side only: no trained model is scored
-on interventions, and no intervention error of any kind is computed.
+Reads data/phase0/milestone1/attemptK/{coverage_pool,episodes}.npz (never states.npz) and writes
+results/phase0/milestone2/attemptN/training_checks.json and plots/, with checkpoints under
+data/phase0/milestone2/attemptN/checkpoints/ (gitignored), for N = constants.MILESTONE2_ATTEMPT.
+Training side only: no trained model is scored on interventions, and no intervention error of any
+kind is computed.
 """
 
 from __future__ import annotations
@@ -27,16 +28,24 @@ from physical_intervene import constants as c
 from physical_intervene import training_checks as TC
 from physical_intervene.data import load_split, make_examples
 from physical_intervene.models import param_table
-from physical_intervene.train import TrainConfig, TrainData, checkpoint_schedule, fit_loss, train
+from physical_intervene.train import (
+    TrainConfig,
+    TrainData,
+    checkpoint_schedule,
+    fit_loss,
+    loss_weights,
+    multi_step_loss,
+    train,
+)
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA = ROOT / "data" / "smoke" / f"attempt{c.SMOKE_ATTEMPT}"
+DATA = ROOT / "data" / "phase0" / "milestone1" / f"attempt{c.SMOKE_ATTEMPT}"
 TRAIN_FILE, VAL_FILE = DATA / "coverage_pool.npz", DATA / "episodes.npz"
-CKPT = ROOT / "data" / "phase0" / "milestone2" / "checkpoints"
-OUT = ROOT / "results" / "phase0" / "milestone2"
+CKPT = ROOT / "data" / "phase0" / "milestone2" / f"attempt{c.MILESTONE2_ATTEMPT}" / "checkpoints"
+OUT = ROOT / "results" / "phase0" / "milestone2" / f"attempt{c.MILESTONE2_ATTEMPT}"
 
 # Phase 0 placeholders for the *set by pilot* items (DESIGN.md, Models). Not chosen by looking at any
 # intervention quantity, and not carried into the pilot: the pilot sets these by L_obs.
@@ -74,8 +83,15 @@ def train_data(target: str | None = None) -> TrainData:
         return _TD["real"]
     if target not in _TD:
         real = _TD["real"]
-        delta = TC.made_up_targets(real.train, real.norm, real.dscaler)[target]
-        td = TrainData.build(_TD["split_train"], None, delta=delta, dscaler=real.dscaler)
+        if target in TC.ROLLOUT_TARGETS:  # mlp-ms: made-up episodes, the real data's scalers
+            split = TC.made_up_episodes(_TD["split_train"], target)
+            ex = make_examples(split)
+            td = TrainData(
+                split, ex, None, real.norm, real.dscaler, real.yscaler, ex.delta, dict(real.data_meta)
+            )
+        else:
+            delta = TC.made_up_targets(real.train, real.norm, real.dscaler)[target]
+            td = TrainData.build(_TD["split_train"], None, delta=delta, dscaler=real.dscaler)
         td.data_meta["target"] = f"made-up: {target}"
         _TD[target] = td
     return _TD[target]
@@ -123,7 +139,10 @@ def run_job(job: dict) -> dict:
         )
     elif kind == "overfit":
         base = train_data()
-        idx = np.random.default_rng(1).choice(len(base.train), c.OVERFIT_EXAMPLES, replace=False)
+        pool = np.arange(len(base.train))
+        if arch == "mlp-ms":  # only starts whose 4-step rollout stays inside the episode
+            pool = pool[base.train.step <= base.split.steps - c.MULTI_STEP_HORIZON]
+        idx = np.random.default_rng(1).choice(pool, c.OVERFIT_EXAMPLES, replace=False)
         td = TrainData(
             base.split,
             base.train,
@@ -138,6 +157,10 @@ def run_job(job: dict) -> dict:
         cfg = config(arch, "medium", 11, job["updates"])
         r = train(cfg, td, evaluate_val=False)
         r["fit_loss"] = fit_loss(r["model"], td, idx)
+        if arch == "mlp-ms":  # its own training loss, which is what it minimised
+            with torch.no_grad():
+                r["fit_loss_one_step"] = r["fit_loss"]
+                r["fit_loss"] = float(multi_step_loss(r["model"], td, idx, loss_weights(None)))
     else:
         raise ValueError(kind)
     r.pop("model")
@@ -180,7 +203,7 @@ def jobs(quick: bool) -> list[dict]:
     }
     for j in out:
         j["updates"] = budget[j["kind"]]
-    cost = {"rssm": 6, "gru": 3, "contact_wm": 3}
+    cost = {"gru": 3, "contact_wm": 3, "mlp-ms": 2}
     width_cost = {"large": 4, "medium": 1.5, "small": 1, None: 1}
     return sorted(
         out,
@@ -397,14 +420,19 @@ def main() -> int:
         "threshold": c.NEAR_ZERO_STD_MSE,
         "unit": "shared training loss on 5,000 training examples "
         "(std-MSE in the real training split's state-change "
-        "scaler; 0.5 box + 0.5 pusher); for rssm, its one-step prediction (mean of 16 samples)",
+        "scaler; 0.5 box + 0.5 pusher), of the one-step prediction; mlp-ms is trained on rollouts over "
+        "made-up episodes (zero_rollout, action_rollout)",
         "results": made_up,
         "pass_condition": f"made-up training loss below {c.NEAR_ZERO_STD_MSE}; "
         "blind is expected not to fit the action target",
         "pass": all(v["pass"] for a in made_up.values() for v in a.values()),
     }
     overfit = {
-        r["job"]["arch"]: {"fit_loss": r["fit_loss"], "pass": r["fit_loss"] < c.NEAR_ZERO_STD_MSE}
+        r["job"]["arch"]: {
+            "fit_loss": r["fit_loss"],
+            **({"fit_loss_one_step": r["fit_loss_one_step"]} if "fit_loss_one_step" in r else {}),
+            "pass": r["fit_loss"] < c.NEAR_ZERO_STD_MSE,
+        }
         for r in results.values()
         if r["kind"] == "overfit"
     }
@@ -470,7 +498,7 @@ def main() -> int:
             "controls": hours_ctrl,
             "total": hours_main + hours_ctrl,
         },
-        "design_estimate": "minutes per run for mlp, tens of minutes for gru, rssm and contact_wm "
+        "design_estimate": "minutes per run for mlp and mlp-ms, tens of minutes for gru and contact_wm "
         "on one CPU core; "
         "80 + 60 runs in three to five days of CPU",
         "note": "one thread per run; 8 runs in parallel on the machine below, "

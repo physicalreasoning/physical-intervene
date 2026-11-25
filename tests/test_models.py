@@ -329,3 +329,77 @@ def test_make_batch_zeroes_padded_actions() -> None:
     b = make_batch(ex, norm)
     assert torch.all(b.ha_n[0] == 0)  # t = 0: the whole history is padding
     assert torch.all(b.ha_n[8] != 0)
+
+
+# Exploration candidates (not in DESIGN.md) ---------------------------------------------------------
+
+
+def test_pnn_predicts_its_mean_and_nll_has_gradients() -> None:
+    norm, ds = unit_norm()
+    m = build("pnn", "small", norm, ds)
+    b = one_step_batch()
+    mean, logvar = m.mean_logvar(b)
+    assert torch.equal(m(b), mean) and torch.equal(m.predict_z(b), mean)
+    assert torch.all(logvar <= m.max_logvar) and torch.all(logvar >= m.min_logvar)
+    loss = m.nll(b, torch.zeros_like(mean), torch.full((11,), 1 / 11))
+    loss.backward()
+    assert all(p.grad is not None for p in m.parameters())
+    assert abs(m.n_params() - c.WIDTH_PARAM_COUNTS[0]) / c.WIDTH_PARAM_COUNTS[0] < 0.03
+
+
+def test_rssm_kl_balance_value_and_gradients() -> None:
+    """DreamerV3's two KL terms have the same value as the plain KL; with no dynamics weight the KL
+    sends no gradient to the prior network."""
+    m = small_rssm()
+    states, prev_a, mask, z, scored = rssm_window()
+    m.free_nats = 0.0
+    plain = m.elbo(states, prev_a, mask, z, scored, torch.Generator().manual_seed(0))
+    m.kl_balance = (0.5, 0.1)
+    bal = m.elbo(states, prev_a, mask, z, scored, torch.Generator().manual_seed(0))
+    assert torch.allclose(bal.loss, plain.recon + 0.6 * plain.kl)
+    m.kl_balance = (0.0, 1.0)  # representation term only: the prior is a fixed target
+    m.zero_grad()
+    kl_only = m.elbo(states, prev_a, mask, z, scored, torch.Generator().manual_seed(0))
+    (kl_only.loss - kl_only.recon).backward()
+    assert m.prior_net.weight.grad is None or torch.all(m.prior_net.weight.grad == 0)
+    assert m.post_net.weight.grad is not None and torch.any(m.post_net.weight.grad != 0)
+
+
+def test_multi_step_loss_first_step_is_the_shared_loss_and_feeds_back_predictions(monkeypatch) -> None:
+    from physical_intervene import train as T
+
+    sp = random_split(n_ep=3, T=30)
+    td = TrainData.build(sp, None)
+    torch.manual_seed(0)
+    m = build("mlp-ms", "small", td.norm, td.dscaler)
+    idx = np.array([0, 5, 31, 70])  # steps 0, 5, 1, 10
+    w = T.loss_weights(None)
+    monkeypatch.setattr(c, "MULTI_STEP_WEIGHTS", (1.0,))
+    one = T.multi_step_loss(m, td, idx, w)
+    assert torch.allclose(one, T.weighted_loss(m(td.batch(idx)), td.z(idx), w), rtol=1e-5)
+    # two steps: the second step's input state is the first step's prediction, not the true state
+    monkeypatch.setattr(c, "MULTI_STEP_WEIGHTS", (0.0, 1.0))
+    two = T.multi_step_loss(m, td, idx, w)
+    b0, b1 = td.batch(idx), td.batch(idx + 1)
+    s1 = b0.s + m(b0) * m.d_scale + m.d_mean
+    s1_n = (s1 - torch.as_tensor(td.norm.s_mean, dtype=torch.float32)) / torch.as_tensor(
+        td.norm.s_std, dtype=torch.float32
+    )
+    hs_n = torch.cat([b0.hs_n[:, 1:], b0.s_n[:, None]], 1)
+    ha_n = torch.cat([b0.ha_n[:, 1:], b0.a_n[:, None]], 1)  # the pair (s_t, a_t) joins the history
+    mask = torch.cat([b0.mask[:, 1:], torch.ones(4, 1)], 1)
+    s2 = s1 + m(Batch(s1_n, hs_n, ha_n, mask, b1.a_n, s1, b1.a)) * m.d_scale + m.d_mean
+    err = (s2 - torch.as_tensor(sp.obs[[0, 0, 1, 2], [2, 7, 3, 12]], dtype=torch.float32)) / m.d_scale
+    assert torch.allclose(two, ((err * err) * w).sum(-1).mean(), rtol=1e-4)
+
+
+def test_made_up_rollout_episodes_match_the_one_step_targets() -> None:
+    from physical_intervene import training_checks as TC
+    from physical_intervene.data import make_examples
+
+    sp = random_split(n_ep=3, T=20)
+    for kind, one_step in (("zero_rollout", "zero"), ("action_rollout", "action")):
+        ex = make_examples(TC.made_up_episodes(sp, kind))
+        want = TC.made_up_targets(ex, *unit_norm())[one_step]
+        assert np.allclose(ex.delta, want, atol=1e-12)
+        assert np.allclose(ex.s[ex.step == 0], make_examples(sp).s[ex.step == 0])

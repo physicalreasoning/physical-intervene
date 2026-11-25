@@ -1,9 +1,11 @@
 """Phase 0, milestone 1: generate the smoke data and run the environment checks.
 
-    uv run python scripts/phase0_env.py [--docker-replay results/phase0/attemptK/docker_replay.json]
+    uv run python scripts/phase0_env.py \
+        [--docker-replay results/phase0/milestone1/attemptK/docker_replay.json]
 
-Writes data/smoke/attemptK/*.npz (gitignored), results/phase0/attemptK/env_checks.json and
-results/phase0/attemptK/plots/, for K = constants.SMOKE_ATTEMPT.
+Writes data/phase0/milestone1/attemptK/*.npz (gitignored),
+results/phase0/milestone1/attemptK/env_checks.json and results/phase0/milestone1/attemptK/plots/,
+for K = constants.SMOKE_ATTEMPT.
 Simulator and scripted policy only: no model of any kind is built, trained or run.
 """
 
@@ -41,8 +43,8 @@ THRESHOLD_DECISION = (
     "pushes, so the rule has no gap to move to. 2 mm lies near the median of contact effects"
 )
 # Each Phase 0 attempt (constants.SMOKE_ATTEMPT) keeps its own data and record.
-DATA = ROOT / "data" / "smoke" / f"attempt{c.SMOKE_ATTEMPT}"
-OUT = ROOT / "results" / "phase0" / f"attempt{c.SMOKE_ATTEMPT}"
+DATA = ROOT / "data" / "phase0" / "milestone1" / f"attempt{c.SMOKE_ATTEMPT}"
+OUT = ROOT / "results" / "phase0" / "milestone1" / f"attempt{c.SMOKE_ATTEMPT}"
 
 
 def timed(fn, *args, **kw):

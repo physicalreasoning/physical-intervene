@@ -90,7 +90,13 @@ def test_plateau_criterion() -> None:
 def test_smoke_data_checks_if_present() -> None:
     from pathlib import Path
 
-    root = Path(__file__).resolve().parent.parent / "data" / "smoke" / f"attempt{c.SMOKE_ATTEMPT}"
+    root = (
+        Path(__file__).resolve().parent.parent
+        / "data"
+        / "phase0"
+        / "milestone1"
+        / f"attempt{c.SMOKE_ATTEMPT}"
+    )
     if not (root / "episodes.npz").exists():
         pytest.skip("smoke data not generated (scripts/phase0_env.py)")
     val = load_split(root / "episodes.npz", "validation")

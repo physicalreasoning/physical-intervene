@@ -8,6 +8,8 @@ test-like states. Each check returns a plain dict with its numbers, pass conditi
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 
 from physical_intervene import baselines
@@ -183,6 +185,23 @@ def made_up_targets(ex: Examples, norm, dscaler: TargetScaler) -> dict[str, np.n
     return out
 
 
+ROLLOUT_TARGETS = ("zero_rollout", "action_rollout")
+
+
+def made_up_episodes(split: Split, kind: str) -> Split:
+    """Episodes whose states follow a made-up rule from the real first state with the real actions:
+    *zero_rollout*, nothing ever moves; *action_rollout*, the pusher position moves by a_t x the
+    control step and nothing else changes. Their one-step state changes equal the made-up targets
+    *zero* and *action*, and a model rolled out over them meets the states it predicts."""
+    obs = np.repeat(split.obs[:, :1], split.obs.shape[1], axis=1).copy()
+    if kind == "action_rollout":
+        step = split.action * c.CONTROL_STEP_S
+        obs[:, 1:, 7:9] += np.cumsum(step, axis=1)
+    elif kind != "zero_rollout":
+        raise ValueError(kind)
+    return replace(split, name=f"{split.name} ({kind})", obs=obs, target=np.zeros_like(split.target))
+
+
 # Which made-up target each architecture is trained on, and on which dimensions of the loss.
 # contact_wm: its structure maps (s_t, a_t) to the state change through a pusher lag path and a box
 # correction on geometric features, so only the parts it can represent are tested (see report).
@@ -192,7 +211,10 @@ PUSHER_POS = [7, 8]
 MADE_UP_PLAN: dict[str, list[tuple[str, list[int] | None]]] = {
     "mlp": [("zero", ALL_DIMS), ("action", ALL_DIMS), ("history", ALL_DIMS), ("smooth", ALL_DIMS)],
     "gru": [("zero", ALL_DIMS), ("action", ALL_DIMS), ("history", ALL_DIMS), ("smooth", ALL_DIMS)],
-    "rssm": [("zero", ALL_DIMS), ("action", ALL_DIMS), ("history", ALL_DIMS), ("smooth", ALL_DIMS)],
+    # mlp-ms trains on rollouts, so its made-up targets must define states to roll out over:
+    # made-up episodes from the real start states and actions (made_up_episodes). Its network and
+    # one-step wiring are mlp's; the rollout's feedback is covered by a unit test.
+    "mlp-ms": [("zero_rollout", ALL_DIMS), ("action_rollout", ALL_DIMS)],
     "contact_wm": [("zero", BOX), ("action", PUSHER_POS), ("smooth_contact_wm_features", [0, 1])],
     "blind": [("action", ALL_DIMS)],  # expected not to fit: it never sees a_t
 }
@@ -340,7 +362,7 @@ def check_budget(runs: list[dict]) -> dict:
     return {
         "runs": rows,
         "pass_condition": "full number of updates, constant learning rate, "
-        "checkpoints every 100 updates to 2,000 then every "
+        "checkpoints every 10 updates to 1,000, every 100 to 2,000, then every "
         "1,000; plateau criterion and whether the run continues past its best checkpoint are reported",
         "pass": ok,
         "runs_continuing_past_best": sum(v["continues_past_best"] for v in rows.values()),

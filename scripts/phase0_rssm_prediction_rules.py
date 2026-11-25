@@ -25,7 +25,7 @@ from physical_intervene.models.common import Batch  # noqa: E402
 from physical_intervene.train import loss_weights, train, weighted_loss  # noqa: E402
 
 torch.set_num_threads(4)
-OUT = ROOT / "results" / "phase0" / "milestone2" / "rssm_prediction_rules.json"
+OUT = ROOT / "results" / "phase0" / "milestone2" / "attempt0" / "rssm_prediction_rules.json"
 
 
 def predict(model, b: Batch, mode: str, s_next_n=None, n=16) -> torch.Tensor:
@@ -96,7 +96,7 @@ for run in [
     "learn_rssm_small_11",
     "learn_rssm_large_11",
 ]:
-    d = P.CKPT / run
+    d = ROOT / "data" / "phase0" / "milestone2" / "attempt0" / "checkpoints" / run
     files = sorted(d.glob("u*.pt"))
     if "medium" not in run:  # small and large: a few checkpoints only
         files = [f for f in files if int(f.stem[1:]) in (1000, 2000, 6000, 12000)]

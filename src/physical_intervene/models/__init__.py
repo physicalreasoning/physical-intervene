@@ -1,8 +1,8 @@
 """Learned models (DESIGN.md, Models) and their widths.
 
 Each architecture has one free size per width, chosen so its parameter count (for contact_wm, its
-correction network's) is the closest to WIDTH_PARAM_COUNTS. rssm at medium width is fixed by
-DESIGN.md instead: a 200-unit GRU with a 30-dimensional latent.
+correction network's) is the closest to WIDTH_PARAM_COUNTS. rssm and pnn are exploration only (not
+in DESIGN.md); rssm at medium width is fixed at a 200-unit GRU with a 30-dimensional latent.
 """
 
 from __future__ import annotations
@@ -17,13 +17,23 @@ from physical_intervene.data import InputNorm, TargetScaler
 from physical_intervene.models.common import WIDTH_NAMES, Batch, WorldModel, make_batch
 from physical_intervene.models.contact_wm import ContactWM
 from physical_intervene.models.gru import GRUModel
-from physical_intervene.models.mlp import MLP, Blind, MLPShortcut
+from physical_intervene.models.mlp import MLP, Blind, MLPMultiStep, MLPShortcut
+from physical_intervene.models.pnn import PNN
 from physical_intervene.models.rssm import RSSM
 
 __all__ = ["Batch", "WorldModel", "make_batch", "build", "size_for", "ARCHITECTURES", "WIDTH_NAMES"]
 
-ARCHITECTURES = ("mlp", "gru", "rssm", "contact_wm", "blind", "mlp-shortcut")
-_CLASSES = {"mlp": MLP, "gru": GRUModel, "contact_wm": ContactWM, "blind": Blind, "mlp-shortcut": MLPShortcut}
+ARCHITECTURES = ("mlp", "gru", "mlp-ms", "contact_wm", "blind", "mlp-shortcut")
+EXPLORATION_ARCHITECTURES = ("rssm", "pnn")  # Phase 0 candidates only, not in DESIGN.md
+_CLASSES = {
+    "mlp": MLP,
+    "gru": GRUModel,
+    "contact_wm": ContactWM,
+    "blind": Blind,
+    "mlp-shortcut": MLPShortcut,
+    "pnn": PNN,
+    "mlp-ms": MLPMultiStep,
+}
 
 
 def _dummy() -> tuple[InputNorm, TargetScaler]:

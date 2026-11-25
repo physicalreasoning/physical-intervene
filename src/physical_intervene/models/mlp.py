@@ -1,7 +1,8 @@
-"""mlp (main), blind (sanity control: a_t removed) and the input side of mlp-shortcut.
+"""mlp (main), mlp-ms (main), blind (sanity control: a_t removed) and the input side of mlp-shortcut.
 
-A residual MLP on (s_t, history, mask, a_t) to the standardised state change. mlp-shortcut is
-this model; the shadow-action swap happens in training (train.py), never in the model.
+A residual MLP on (s_t, history, mask, a_t) to the standardised state change. mlp-shortcut and
+mlp-ms are this model; the shadow-action swap and the multi-step loss happen in training
+(train.py), never in the model.
 """
 
 from __future__ import annotations
@@ -58,3 +59,10 @@ class Blind(MLP):
 
 class MLPShortcut(MLP):
     arch = "mlp-shortcut"
+
+
+class MLPMultiStep(MLP):
+    """mlp-ms (main, different objective): mlp's network trained on a weighted multi-step loss
+    (train.py, multi_step_loss). The network and its one-step prediction are mlp's."""
+
+    arch = "mlp-ms"

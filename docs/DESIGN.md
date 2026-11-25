@@ -22,8 +22,8 @@ of evm-intervene.
 | **Environment** | MuJoCo planar pushing: a 10 cm box and a round pusher driven by commanded velocity, 0.1 s control steps. The full simulator state is saved and restored bit-exactly in one pinned Docker image, so the true outcome of any action from any state costs microseconds. |
 | **Data** | A scripted policy pushes the box toward a hidden goal, with noise, and takes a uniform random action 20% of the time (less near the box if Phase 0's coverage check requires). 1,000 training and 100 validation episodes; every model trains on the same data. |
 | **Interventions** | 1,000 held-out states where the pusher is within 10 mm of the box. From each, 24 actions (12 aimed at the box, 12 uniform), each labelled by the simulator as *no contact*, *graze* or *push*. Only *push* is gated. |
-| **Models** | `mlp` and `gru` (architectures), `rssm` (different objective: ELBO), `contact_wm` (different structure: pushing physics written in, numbers learned). Three widths (10k, 100k, 1M parameters); 10 seeds at medium width, which G1 uses. Baselines: `copy`, `constvel`, `knn`. |
-| **Controls** | Positive: `mlp` vs `mlp-shortcut`, trained to rely on the action less, so the gap is present by construction; how much less (p) is computed after the main runs from validation loss and the simulator, so it can reach V*. Negative: each architecture vs its twin on new seeds. Sanity: `blind`, which never sees the action. All run through G1 on the test states. |
+| **Models** | `mlp` and `gru` (architectures), `mlp-ms` (different objective: `mlp` trained on a multi-step loss), `contact_wm` (different structure: pushing physics written in, numbers learned). Three widths (10k, 100k, 1M parameters); 10 seeds at medium width, which G1 uses. Baselines: `copy`, `constvel`, `knn`. |
+| **Controls** | Positive: `mlp` vs `mlp-shortcut`, trained to rely on the action less, so the gap is present by construction; how much less (p) is computed after the main runs from validation loss and the simulator, so it can reach V*. Negative: each architecture vs its twin on new seeds. Sanity: `blind`, which never sees the action it must predict the outcome of (a_t). All run through G1 on the test states. |
 | **Metrics** | L_obs: one-step std-MSE of the box's (Δx, Δy, Δθ) on validation transitions, the same for every model. E_int: the same error on push interventions. |
 | **Matching** | Every run trains its full budget, with no early stopping; G1 uses each run's checkpoint closest to V* = 1.1 × the largest architecture median of best L_obs, and the gap is also reported at other loss levels and at best checkpoints. Two architectures are matched if their L_obs differ by at most 5%. |
 
@@ -100,10 +100,11 @@ freeze 1 (see *Seal*). Where a number appears both here and there, the two must 
 ## Target and loss
 
 Each model predicts the change in the full state. **Training loss**, the same for every model
-except `rssm`: 0.5 × the std-MSE over the box's 7 state numbers + 0.5 × the std-MSE over the
-pusher's 4, each standardised on the training split. `rssm` trains on the ELBO over sequences
-instead (see *Models*). It is the model with a different objective, and `contact_wm` the model
-with a different structure, the two kinds of difference the issue asks for. Scoring uses only the
+except `mlp-ms`: 0.5 × the std-MSE over the box's 7 state numbers + 0.5 × the std-MSE over the
+pusher's 4, each standardised on the training split. `mlp-ms` trains on a multi-step loss
+instead: the same per-step loss averaged over a 4-step open-loop rollout (see *Models*). It is the
+model with a different objective, and `contact_wm` the model with a different structure, the two
+kinds of difference the issue asks for. Scoring uses only the
 box target, three numbers:
 
 y_t = (Δx, Δy, Δθ) of the box over one control step, with Δθ wrapped to (−π, π].
@@ -202,11 +203,11 @@ equal-observability rule, so a failure cannot come from missing inputs.
 | --- | --- | --- |
 | `mlp` | residual MLP on (s_t, history, a_t) → Δs | main |
 | `gru` | GRU over the history, then a head on (h_t, a_t) → Δs | main |
-| `rssm` | RSSM (deterministic GRU state plus Gaussian latent). **Different objective:** trained on sequences with the ELBO instead of the shared one-step loss (*Target and loss*); scored on the same L_obs as every model. Structure and objective follow PlaNet (Hafner et al. 2019): sequences of 50, 3 free nats, KL weight 1, and at medium width a 200-unit GRU with a 30-dimensional latent; prediction is the mean of 16 samples, drawn with a sampling seed fixed per run so that scoring the same checkpoint twice gives the same prediction | main, different objective |
+| `mlp-ms` | `mlp`'s network. **Different objective:** trained on a weighted multi-step loss (Benechehab et al. 2024) instead of the shared one-step loss. From a true start, the model is rolled out open loop for 4 steps with the logged actions, its own predicted state fed back as s_t and into the history; the loss is the mean, with equal weights, of the shared loss on each step's state error, in units of the state change's scale (the first step is exactly the shared loss). Horizon and weights are fixed now, not tuned. Prediction and scoring are one-step, as for every model | main, different objective |
 | `contact_wm` | structured: hand-written contact geometry and a quasi-static pushing law, with a small trained correction network; every number learned from the training data (see below) | main, different structure |
 | `mlp-shortcut` | as `mlp`, but during training each transition's action input is replaced, with probability p, by that transition's *shadow action* (see *Controls*); at test time it gets the real a_t like every model | positive control |
-| `mlp-twin`, `gru-twin`, `rssm-twin`, `contact_wm-twin` | the same architecture, settings and width as `mlp`, `gru`, `rssm`, `contact_wm`, trained on 10 seeds of their own, 121 to 220 in steps of 11 | negative controls |
-| `blind` | as `mlp` with a_t removed | sanity control |
+| `mlp-twin`, `gru-twin`, `mlp-ms-twin`, `contact_wm-twin` | the same architecture, settings and width as `mlp`, `gru`, `mlp-ms`, `contact_wm`, trained on 10 seeds of their own, 121 to 220 in steps of 11 | negative controls |
+| `blind` | as `mlp` with a_t removed; the history keeps its 8 past actions, as for every model | sanity control |
 | `copy` | box does not move | baseline (evm's `copy`) |
 | `constvel` | box keeps its current velocity | baseline |
 | `knn` | mean Δs of the 5 nearest training transitions in standardised (s_t, a_t) | baseline |
@@ -220,9 +221,10 @@ the count is that of its correction network.
 
 **Training: full budget, no early stopping.** Every run trains for its architecture's full number
 of updates, at a **constant learning rate** (no decay schedule), so that any saved checkpoint is a
-fair "stopped here" model. Checkpoints are saved every 100 updates for the first 2,000 updates,
-where L_obs falls fastest, and every 1,000 updates after that, so no run steps past V* by more
-than the match screen allows. The number of updates is *set by pilot*: the point where the
+fair "stopped here" model. Checkpoints are saved every 10 updates for the first 1,000 updates,
+every 100 updates up to 2,000, where L_obs falls fastest, and every 1,000 updates after that, so
+no run steps past V* by more than the match screen allows. (In Phase 0, with checkpoints every 100
+updates, the fastest model fell by more than the 10% band around V* between two checkpoints.) The number of updates is *set by pilot*: the point where the
 pilot's L_obs has improved by no more than 1% over its last 10 checkpoints at 1,000-update
 spacing (the *plateau criterion*), plus 50%. Each final run reports whether it met the plateau
 criterion by its last checkpoint. Every run therefore reaches its own floor and continues past
@@ -266,10 +268,17 @@ its own random stream, so the training data are byte-identical with or without i
 - **Training** is as for every model: gradient descent on std-MSE (box target, plus the pusher
   target from its lag model), the same training budget rule and checkpoint schedule, settings
   *set by pilot* by L_obs.
-- **Matching.** Its rules approximate MuJoCo's soft contact, so its best L_obs may be higher than
-  the others'. V* is 1.1 × the largest architecture median, so every architecture can reach it,
-  but a high `contact_wm` median raises V* and puts the other models at earlier checkpoints. So
-  G1 among the three general-purpose models, with V* from their medians only, is also reported
+- **Expected ordering, stated now.** The scene's mechanisms have the form of `contact_wm`'s law
+  (a constant table-friction force, a velocity-servo pusher, near quasi-static pushing of a light
+  box), so `contact_wm` is expected to have the lowest L_obs of the four architectures; in Phase 0
+  smoke runs it did, by about a factor of three. The test is therefore not whether it predicts
+  better, but whether its advantage under intervention exceeds what matching removes.
+- **Matching.** V* is set by the architecture with the highest median, so `contact_wm` is matched
+  at an early checkpoint, with its correction network and learned numbers only partly trained.
+  This makes its G1 pairs asymmetric, and the reading is fixed now: a pair where `contact_wm` has
+  the lower E_int at V* is conservative evidence for its structure; a pair where it has the higher
+  E_int at V* is not read as evidence against it, and is read through *Gap along training* and the
+  best checkpoints (`matched_only`). G1 without the architecture that sets V* is also reported
   (*Secondary analyses*).
 - **Passing pairs.** The result lists which main pairs pass (`gate_g1_passing_pairs`).
 
@@ -315,18 +324,18 @@ flaw built in, at a known size.
 - *Pilot confirmation.* The pilot computes E_int on pilot states for controls only, comparing
   `mlp-shortcut` with `mlp-twin`, which has `mlp`'s architecture but is not a main model. It
   reports the observed relative gap beside the predicted one. This reveals one absolute E_int of
-  an `mlp`-like model, and nothing about how `mlp`, `gru`, `rssm` and `contact_wm` compare, which is what G1
+  an `mlp`-like model, and nothing about how `mlp`, `gru`, `mlp-ms` and `contact_wm` compare, which is what G1
   tests; the pilot report says so. No main model's intervention error is computed in the pilot.
   The pilot applies the rule above to its own runs to get a pilot p for this comparison; the
   final p is computed afresh from the main runs and never uses the pilot's result. If the pilot
   pair does not separate, the rule stays as written, the result is reported, and the formal
   positive control still runs; there is no tuning on intervention error.
 
-**Negative controls, X vs X-twin for X in `mlp`, `gru`, `rssm`, `contact_wm`.** Each twin is its architecture
+**Negative controls, X vs X-twin for X in `mlp`, `gru`, `mlp-ms`, `contact_wm`.** Each twin is its architecture
 retrained on 10 new seeds, so the pair has no real difference: any gap is training noise. G1
 should not separate them. The main risk G1 guards against is two seeds of one architecture
 differing by chance and that passing as an architecture difference; the twins test that
-safeguard on trained models, for every architecture, since `gru`, `rssm` and `contact_wm` may vary more
+safeguard on trained models, for every architecture, since `gru`, `mlp-ms` and `contact_wm` may vary more
 from seed to seed than `mlp`.
 
 - The twins are kept out of everything else: V* is computed from the main runs only, and the
@@ -338,7 +347,7 @@ from seed to seed than `mlp`.
   reported. If it separates a twin pair that the full procedure does not, that shows directly why
   this design resamples seeds.
 
-**Sanity control, `blind`.** A model that never sees the action is known to do worse under
+**Sanity control, `blind`.** A model that never sees a_t is known to do worse under
 intervention, so it does contain the gap, but at a much higher L_obs: it cannot pass the match
 screen, and the gap is far larger than the 20% G1 must detect. It cannot show what G1 can detect
 at matched loss. It shows only that the pipeline notices a model ignoring the action at all
@@ -397,7 +406,7 @@ all three thresholds.
   they do not differ. If it does not pass (no match, or no separation), a G1 *fail* is reported as
   *inconclusive: test not shown sensitive*.
 - **Negative controls (specificity).** Each of `mlp` vs `mlp-twin`, `gru` vs `gru-twin`,
-  `rssm` vs `rssm-twin` and `contact_wm` vs `contact_wm-twin` should not separate. A main pair counts towards a G1 *pass* only if
+  `mlp-ms` vs `mlp-ms-twin` and `contact_wm` vs `contact_wm-twin` should not separate. A main pair counts towards a G1 *pass* only if
   neither of its architectures' twin pairs separates; a main pair that meets the pass conditions
   while one of its twin pairs separated is reported as *inconclusive: test not shown specific*.
   A twin pair that is *not run* (too few twin seeds left) leaves its main pairs unaffected, and
@@ -410,7 +419,7 @@ all three thresholds.
 *Question:* can two architectures with the same observational validation loss differ in how
 well they predict the outcome of an intervention that pushes the box?
 
-Steps, for each of the 6 pairs of main architectures (mlp/gru, mlp/rssm, gru/rssm, and each of
+Steps, for each of the 6 pairs of main architectures (mlp/gru, mlp/mlp-ms, gru/mlp-ms, and each of
 the three with contact_wm), at matched
 checkpoints (see *Matching observational loss*):
 
@@ -468,7 +477,9 @@ evm-intervene (`gate_g2_obs_rank_decoupled`):
 - in between: inconclusive.
 
 The interval is reported with every reading. A stricter flag, `decoupled_by_interval` (upper end
-of the interval < 0.50), is reported beside it and is not gated. With 80 runs the interval is
+of the interval < 0.50), is reported beside it and is not gated. Because `contact_wm` is expected
+to be best on L_obs (*Models*), it can raise ρ by being right on both axes; G2 over the
+general-purpose runs only is reported beside it (*Secondary analyses*). With 80 runs the interval is
 wide, so a decoupled reading whose interval reaches 0.50 is stated as such in the write-up.
 
 ## Secondary analyses (not gated)
@@ -481,9 +492,13 @@ wide, so a decoupled reading whose interval reaches 0.50 is stated as such in th
 - E_int and the corner error against the policy log-density of the action, in deciles.
 - **10-step rollouts**, free-running, under constant interventions, as evm-intervene's 12-step
   rollouts. Validation for this analysis uses 10-step rollouts with logged actions, so the two
-  are compared in the same mode.
-- G1 among the three general-purpose models only (3 pairs, Holm over 3), with V* computed by the
-  same rule from their medians, so that `contact_wm` does not set their matching level.
+  are compared in the same mode. `mlp-ms` is trained on 4-step rollouts, which favours it here.
+- G1 without the architecture whose median sets V* (3 pairs, Holm over 3), with V* computed by
+  the same rule from the other three medians, so that the model that sets the level for all pairs
+  can be left out and the others compared later in training.
+- G2 over the general-purpose runs only (`mlp`, `gru`, `mlp-ms`; 60 runs). A structured model
+  whose built-in knowledge is right tends to be good on both L_obs and E_int and raises ρ; this
+  reading cannot be driven by `contact_wm` in either direction.
 - **Gap along training.** Every saved checkpoint of every medium-width main run is scored on the
   push stratum, and each architecture's seed-mean E_int is plotted against L_obs, on raw and log
   axes. For each main pair, the G1 procedure (matched checkpoints, bootstrap, interval) is repeated
@@ -562,8 +577,9 @@ named above, including the gate readings `gate_g0_valid`, `gate_g1_reading`,
 ## Compute
 
 Data generation is a few CPU-minutes. One-step training on 100,000 transitions takes minutes per
-run for `mlp` and tens of minutes for `gru`, `rssm` and `contact_wm` (whose sub-stepped
-geometry is slower per update) on one CPU core. 80 main runs plus 60 control runs (10 `blind`, 10
+run for `mlp` and `mlp-ms` (whose 4-step rollout costs about four forward passes) and tens of
+minutes for `gru` and `contact_wm` (whose sub-stepped geometry is slower per update) on one CPU
+core. 80 main runs plus 60 control runs (10 `blind`, 10
 `mlp-shortcut`, 40 twins) fit in three to five days of CPU, or one or two free
 Colab or Kaggle GPU sessions. The `mlp-shortcut` runs start only after the medium-width main runs
 have finished, since p needs their V*; they are among the fastest runs. D_obs on the validation
@@ -575,8 +591,15 @@ a fallback stated now. The twins are not dropped to save compute.
 - One simulated task, one box, fixed physics. A positive result shows the effect exists, not that
   it is large in practice.
 - `contact_wm`'s rules are an approximation: quasi-static pushing ignores the box's momentum
-  during contact, and MuJoCo's contact is soft. Where they disagree, `contact_wm` is wrong in a
-  way no amount of data fixes, beyond what its correction network absorbs.
+  during contact, and MuJoCo's contact is soft. In this scene the approximation is close on the
+  behaviour data (lowest L_obs in Phase 0). Where it is wrong, for example in pushes unlike those
+  in the data, it is wrong in a way no amount of data fixes, beyond what its correction network
+  absorbs.
+- `mlp-ms` differs from `mlp` only in its objective, and only by weighting errors over 4 steps.
+  A gap between them shows that the training objective alone can change intervention error; no
+  gap says little about other objectives (for example a latent-variable model trained on the
+  ELBO). Its multi-step training also gives it an advantage in the 10-step rollouts of
+  *Secondary analyses*, which is stated when they are read.
 - Full observability makes `mlp` a correct model class. If the main models do not separate, that
   is the most likely reason. A partially observed variant (no velocities, or friction drawn per
   episode) is the natural follow-up, not part of this test.
