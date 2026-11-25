@@ -73,8 +73,10 @@ Where they and this file differ, this file governs.
 - [Comparison with evm-intervene](background/EVM_COMPARISON.md): shared terms, deliberate
   differences, result-key mapping.
 - [Results file format](background/RESULTS_FORMAT.md): layout of
-  `results/intervention_results.json`, with a placeholder example.
-- [Shared reporting format, draft](INTERVENTION_REPORTING.md).
+  `results/intervention_results.json`, with a placeholder example. The layout itself is defined by
+  `src/physical_intervene/results_format.py`, which is hashed in freeze 1.
+- [Shared reporting format, draft](INTERVENTION_REPORTING.md): a format proposed for every
+  intervention test; this design does not depend on it.
 - [Phase 0 smoke-test plan](SMOKE_TEST.md); only its record is hashed (see *Seal*).
 
 **Where the numbers live.** This file states every rule and every number that is an analysis
@@ -141,7 +143,7 @@ are drawn uniformly from fixed regions.
 | train | 1,000 episodes (100,000 transitions) | fixed, in freeze 1 |
 | validation | 100 episodes (10,000 transitions); L_obs | fixed, in freeze 1 |
 | smoke | 50 episodes, 200 test-like states and a coverage pool of 1,000 episodes, for Phase 0 only | fixed before Phase 0, recorded in freeze 1; smoke outputs never enter a result |
-| pilot | 200 episodes and 200 test-like states | fixed, in freeze 1; pilot outputs never enter a result |
+| pilot | 1,000 episodes (the training split's size; *Pilot rule*) and 200 test-like states | fixed, in freeze 1; pilot outputs never enter a result |
 | test | 1,000 held-out states (see *Interventions*) | derived from the sha256 of `frozen/models.json`, so it cannot exist before every model's weights are hashed |
 
 ## Interventions
@@ -224,16 +226,39 @@ of updates, at a **constant learning rate** (no decay schedule), so that any sav
 fair "stopped here" model. Checkpoints are saved every 10 updates for the first 1,000 updates,
 every 100 updates up to 2,000, where L_obs falls fastest, and every 1,000 updates after that, so
 no run steps past V* by more than the match screen allows. (In Phase 0, with checkpoints every 100
-updates, the fastest model fell by more than the 10% band around V* between two checkpoints.) The number of updates is *set by pilot*: the point where the
-pilot's L_obs has improved by no more than 1% over its last 10 checkpoints at 1,000-update
-spacing (the *plateau criterion*), plus 50%. Each final run reports whether it met the plateau
-criterion by its last checkpoint. Every run therefore reaches its own floor and continues past
-its best checkpoint, which matching at V* and the curves in *Secondary analyses* need. Why:
+updates, the fastest model fell by more than the 10% band around V* between two checkpoints.) The
+number of updates is *set by pilot* (below). The *plateau criterion*: L_obs has improved by no
+more than 1% over the last 10 checkpoints at 1,000-update spacing; a run's *plateau point* is the
+update at which it is first met. Each final run reports whether it met the plateau criterion by
+its last checkpoint. Every run therefore reaches its own floor and continues past its best
+checkpoint, which matching at V* and the curves in *Secondary analyses* need. Why:
 [RATIONALE.md](background/RATIONALE.md), *Why one matched level, with full training*.
-Controls: medium width, 20 seeds each (120 runs); `blind` and `mlp-shortcut` use the main seeds, the twins use their own. Optimiser,
-learning rate, batch size and the number of updates are *set by pilot* on pilot and
-validation data only. Each architecture gets its own settings, chosen by the same pilot procedure and budget,
-and shared across its seeds and widths. **Every pilot choice minimises L_obs on validation data.**
+Controls: medium width, 20 seeds each (120 runs); `blind` and `mlp-shortcut` use the main seeds, the twins use their own.
+
+**Pilot rule.** Optimiser, learning rate, batch size and the number of updates are *set by pilot*,
+by this rule, fixed now; only the values are filled in after the pilot.
+
+1. **Data.** The pilot's 1,000 episodes for training (the training split's size, so the budget is
+   measured on as much data as the main runs see) and the validation split for L_obs.
+2. **Grid.** For each main architecture at medium width: optimiser Adam; learning rate in
+   {1e-4, 3e-4, 1e-3, 3e-3}; batch size in {256, 1,024}. Each of the 8 settings is trained on the
+   pilot training seeds 451, 462 and 473, with the checkpoint schedule above, until it meets the
+   plateau criterion or reaches 100,000 updates.
+3. **Choice.** Each setting's score is the median over its 3 seeds of best L_obs. The chosen
+   setting is the one with the lowest score; settings within 5% of the lowest count as tied (in
+   Phase 0, seeds of one setting differed by 1% to 5% in L_obs), and a tie goes to the smaller
+   learning rate, then the smaller batch size.
+4. **Grid edge.** If the lowest-scoring setting has the smallest or largest learning rate in the
+   grid, the grid is extended once by one step in that direction (3e-5 or 1e-2), at both batch
+   sizes and on the same 3 seeds, and step 3 is applied again to the extended grid. A best setting
+   at the edge of the extended grid is kept and reported.
+5. **Budget.** The number of updates is 1.5 × the largest plateau point among the chosen
+   setting's 3 seeds. A seed that did not meet the criterion by 100,000 updates counts as 100,000,
+   and this is reported.
+6. **Sharing.** An architecture's settings and budget are shared across its seeds and widths and
+   by its controls: its twin uses them, and `blind` and `mlp-shortcut` use `mlp`'s.
+
+**Every pilot choice minimises L_obs on validation data.**
 Intervention error on the pilot states may be computed to check the pipeline, but it never
 informs any choice, and the pilot report says so. The one exception is below, and concerns
 controls only.
@@ -313,7 +338,7 @@ flaw built in, at a known size.
   2. Compute D_obs on the validation transitions with the simulator alone, as in *Feasibility*.
   3. Let L_mlp be the median over `mlp`'s seeds of its best L_obs. p is the largest value in
      {0.1, 0.2, ..., 0.9} with L_mlp + p² · D_obs ≤ V*.
-  4. Train the 10 `mlp-shortcut` seeds at that p. Each uses its checkpoint closest to V* and goes
+  4. Train the 20 `mlp-shortcut` seeds at that p. Each uses its checkpoint closest to V* and goes
      through the match screen like any run; a miss is reported, not corrected.
 
   The rule's inputs are validation loss and the simulator only; no intervention error and no test
@@ -332,7 +357,7 @@ flaw built in, at a known size.
   positive control still runs; there is no tuning on intervention error.
 
 **Negative controls, X vs X-twin for X in `mlp`, `gru`, `mlp-ms`, `contact_wm`.** Each twin is its architecture
-retrained on 10 new seeds, so the pair has no real difference: any gap is training noise. G1
+retrained on 20 new seeds, so the pair has no real difference: any gap is training noise. G1
 should not separate them. The main risk G1 guards against is two seeds of one architecture
 differing by chance and that passing as an architecture difference; the twins test that
 safeguard on trained models, for every architecture, since `gru`, `mlp-ms` and `contact_wm` may vary more
@@ -471,7 +496,7 @@ checkpoints (see *Matching observational loss*):
 
 *Note:* a state with more push actions weighs more in E_int. This is how the design reads the
 issue's "averaged over held-out states": transitions are pooled across states, as in
-evm-intervene and the shared reporting format, and the states-only bootstrap resamples whole
+evm-intervene, and the states-only bootstrap resamples whole
 states.
 
 **G2. Rank correlation.** Spearman ρ(L_obs, E_int push) across the 120 main runs at their
@@ -542,7 +567,8 @@ a result. The plan is in [SMOKE_TEST.md](SMOKE_TEST.md); the record
    the sha256 of every file that generates data, trains or scores (including the MuJoCo scene
    file, `constants.py` and the model configurations), the MuJoCo, Python and torch
    versions, the image digest, the sha256 of the Phase 0 record, the smoke, train, validation
-   and pilot seeds, the main training seeds (11 to 220), the twin training seeds (231 to 440), the seed of the shadow-action
+   and pilot seeds, the main training seeds (11 to 220), the twin training seeds (231 to 440), the pilot training
+   seeds (451, 462, 473), the seed of the shadow-action
    stream, d_push and θ_push, and ε_near. The background files are not part of the freeze. Commit and
    push, and
    post the commit hash and this file's sha256 on forward#5. That comment's timestamp is
@@ -581,7 +607,8 @@ A problem found after freeze 1 is fixed by an amendment, never by editing this f
 One JSON, `results/intervention_results.json`, written by the scorer. It reports every quantity
 named above, including the gate readings `gate_g0_valid`, `gate_g1_reading`,
 `gate_positive_control_pass`, `gate_negative_controls`, `gate_g1_passing_pairs` and
-`gate_g2_reading`. Layout and key names: [RESULTS_FORMAT.md](background/RESULTS_FORMAT.md).
+`gate_g2_reading`. Layout and key names are defined by `src/physical_intervene/results_format.py`
+(hashed in freeze 1) and described in [RESULTS_FORMAT.md](background/RESULTS_FORMAT.md).
 
 ## Compute
 
@@ -592,7 +619,9 @@ core. 120 main runs plus 120 control runs (20 `blind`, 20 `mlp-shortcut`, 80 twi
 roughly five to eight days of CPU (an estimate scaled from the earlier 140 runs in three to five
 days; most added runs are at medium width), or two or three free Colab or Kaggle GPU sessions. The `mlp-shortcut` runs start only after the medium-width main runs
 have finished, since p needs their V*; they are among the fastest runs. D_obs on the validation
-transitions takes 10,000 × 100 one-step simulations, a few CPU-minutes. The pilot confirms this. If it does not, the large width is dropped,
+transitions takes 10,000 × 100 one-step simulations, a few CPU-minutes. The pilot's grid is 96
+runs (4 architectures, 8 settings, 3 seeds; 6 more for each architecture whose grid is extended) of at most 100,000 updates each, about one CPU-day
+at that cap by Phase 0's timings. The pilot confirms these estimates. If it does not, the large width is dropped,
 a fallback stated now. The twins are not dropped to save compute.
 
 ## Limits, stated now

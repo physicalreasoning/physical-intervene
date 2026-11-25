@@ -3,7 +3,7 @@
 Values here are fixed at freeze 1. Where a value is also stated in DESIGN.md, the two must agree.
 Items the design marks *set by pilot* (optimiser, learning rate, batch size, number of
 updates) and p for mlp-shortcut (computed after the main runs) are not here; they are recorded in
-frozen/models.json at freeze 2.
+frozen/models.json at freeze 2. The pilot rule that chooses them (grids, seeds, cap) is here.
 Sources for the defaults are in the project notes, not in this file.
 """
 
@@ -41,7 +41,7 @@ N_TRAIN_EPISODES = 1_000
 N_VAL_EPISODES = 100
 N_SMOKE_EPISODES = 50
 N_SMOKE_STATES = 200
-N_PILOT_EPISODES = 200
+N_PILOT_EPISODES = 1_000  # the training split's size, so the pilot's budget sees as much data
 N_PILOT_STATES = 200
 N_TEST_STATES = 1_000
 
@@ -140,6 +140,20 @@ MAIN_SEEDS: tuple[int, ...] = tuple(range(11, 221, 11))  # 11, 22, ..., 220
 EVM_SEEDS: tuple[int, ...] = (11, 22, 33, 44, 55)
 SECONDARY_WIDTH_SEEDS: tuple[int, ...] = EVM_SEEDS
 TWIN_SEEDS: tuple[int, ...] = tuple(range(231, 441, 11))  # 231, 242, ..., 440
+
+# Pilot rule (DESIGN.md, Models, Pilot rule): per main architecture at medium width, every setting
+# in the grid is trained on each pilot seed until the plateau criterion or PILOT_MAX_UPDATES. The
+# lowest median best L_obs wins; within PILOT_TIE_REL_TOL of it, the smaller learning rate, then the
+# smaller batch size. If the lowest has an edge learning rate, the grid is extended once by the
+# matching PILOT_LR_EDGE_EXTENSION value. Budget: BUDGET_FACTOR_OVER_PLATEAU x the largest plateau
+# point of its seeds.
+PILOT_OPTIMISER = "adam"
+PILOT_LR_GRID: tuple[float, ...] = (1e-4, 3e-4, 1e-3, 3e-3)
+PILOT_BATCH_GRID: tuple[int, ...] = (256, 1_024)
+PILOT_TRAINING_SEEDS: tuple[int, ...] = (451, 462, 473)
+PILOT_MAX_UPDATES = 100_000
+PILOT_TIE_REL_TOL = 0.05  # Phase 0: seeds of one setting differed by 1% to 5% in L_obs
+PILOT_LR_EDGE_EXTENSION: tuple[float, float] = (3e-5, 1e-2)  # below the smallest, above the largest
 
 # Target scaling: std floors for (dx m, dy m, dtheta rad).
 TARGET_STD_FLOORS = (1e-4, 1e-4, 1e-3)
