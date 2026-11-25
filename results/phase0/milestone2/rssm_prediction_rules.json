@@ -1,0 +1,710 @@
+{
+ "checkpoints": {
+  "learn_rssm_medium_11": [
+   {
+    "updates": 100,
+    "samples16": 0.46740115616334826,
+    "prior_mean": 0.5252638619851686,
+    "deterministic": 0.4597559328412547,
+    "posterior_next": 0.3648304468283941
+   },
+   {
+    "updates": 200,
+    "samples16": 0.42871209262817067,
+    "prior_mean": 0.46974270928981915,
+    "deterministic": 0.4206304587941171,
+    "posterior_next": 0.32279116376692324
+   },
+   {
+    "updates": 300,
+    "samples16": 0.41806613282349625,
+    "prior_mean": 0.4534539463587922,
+    "deterministic": 0.40972754687295254,
+    "posterior_next": 0.3225842747210964
+   },
+   {
+    "updates": 400,
+    "samples16": 0.40315326120484285,
+    "prior_mean": 0.4280363513991238,
+    "deterministic": 0.3947615653479627,
+    "posterior_next": 0.31542222937541936
+   },
+   {
+    "updates": 500,
+    "samples16": 0.39269064169101436,
+    "prior_mean": 0.40869757449925503,
+    "deterministic": 0.3838457382750714,
+    "posterior_next": 0.31566867517839603
+   },
+   {
+    "updates": 600,
+    "samples16": 0.3794528595628544,
+    "prior_mean": 0.39099477194660004,
+    "deterministic": 0.36976882521910265,
+    "posterior_next": 0.31089857976602947
+   },
+   {
+    "updates": 700,
+    "samples16": 0.3745170209906322,
+    "prior_mean": 0.3844011148683973,
+    "deterministic": 0.36638643488651507,
+    "posterior_next": 0.31371113592077926
+   },
+   {
+    "updates": 800,
+    "samples16": 0.3683750143949642,
+    "prior_mean": 0.37660943289569887,
+    "deterministic": 0.3606122706647489,
+    "posterior_next": 0.31115702669686895
+   },
+   {
+    "updates": 900,
+    "samples16": 0.3643556131395363,
+    "prior_mean": 0.3715562616882049,
+    "deterministic": 0.3573774358920839,
+    "posterior_next": 0.31028302347675807
+   },
+   {
+    "updates": 1000,
+    "samples16": 0.3599775864602218,
+    "prior_mean": 0.3658787149618496,
+    "deterministic": 0.3527811059139828,
+    "posterior_next": 0.3087608792098192
+   },
+   {
+    "updates": 1100,
+    "samples16": 0.3556308451718829,
+    "prior_mean": 0.3607481865114847,
+    "deterministic": 0.34830044990251424,
+    "posterior_next": 0.3075624192976273
+   },
+   {
+    "updates": 1200,
+    "samples16": 0.35224283484508084,
+    "prior_mean": 0.357220775993459,
+    "deterministic": 0.34596597444574245,
+    "posterior_next": 0.3022345690823723
+   },
+   {
+    "updates": 1300,
+    "samples16": 0.35580269789733276,
+    "prior_mean": 0.3599257914112471,
+    "deterministic": 0.34913877245520614,
+    "posterior_next": 0.307701343073925
+   },
+   {
+    "updates": 1400,
+    "samples16": 0.3457077886153909,
+    "prior_mean": 0.3499826431801989,
+    "deterministic": 0.3402099809370919,
+    "posterior_next": 0.302072968543365
+   },
+   {
+    "updates": 1500,
+    "samples16": 0.34411871178562425,
+    "prior_mean": 0.34745146901431295,
+    "deterministic": 0.33798223100380903,
+    "posterior_next": 0.3003187917903269
+   },
+   {
+    "updates": 1600,
+    "samples16": 0.33491154769750164,
+    "prior_mean": 0.33831902630254307,
+    "deterministic": 0.32839853161417143,
+    "posterior_next": 0.29080814710127645
+   },
+   {
+    "updates": 1700,
+    "samples16": 0.32077618690088633,
+    "prior_mean": 0.3237868344036054,
+    "deterministic": 0.31296173257376597,
+    "posterior_next": 0.2735411066516187
+   },
+   {
+    "updates": 1800,
+    "samples16": 0.29200143191566186,
+    "prior_mean": 0.2951715163505217,
+    "deterministic": 0.2840919320843262,
+    "posterior_next": 0.24364801895631477
+   },
+   {
+    "updates": 1900,
+    "samples16": 0.27155355139348336,
+    "prior_mean": 0.27581635831226853,
+    "deterministic": 0.2624506047715469,
+    "posterior_next": 0.22036703813467756
+   },
+   {
+    "updates": 2000,
+    "samples16": 0.26004733906560135,
+    "prior_mean": 0.26356112594914755,
+    "deterministic": 0.2491832581238399,
+    "posterior_next": 0.20384658625290036
+   },
+   {
+    "updates": 3000,
+    "samples16": 0.1497175715901217,
+    "prior_mean": 0.151350498285441,
+    "deterministic": 0.13583863613143032,
+    "posterior_next": 0.05223738024470389
+   },
+   {
+    "updates": 4000,
+    "samples16": 0.13249764694565816,
+    "prior_mean": 0.13193840998357886,
+    "deterministic": 0.11904330682235034,
+    "posterior_next": 0.03879417185000794
+   },
+   {
+    "updates": 5000,
+    "samples16": 0.11985899515875337,
+    "prior_mean": 0.1183770897387003,
+    "deterministic": 0.10651430769374223,
+    "posterior_next": 0.03306454383812485
+   },
+   {
+    "updates": 6000,
+    "samples16": 0.11354462204457386,
+    "prior_mean": 0.11203995359723322,
+    "deterministic": 0.10167498616262012,
+    "posterior_next": 0.030344493457693262
+   },
+   {
+    "updates": 7000,
+    "samples16": 0.10619806725077154,
+    "prior_mean": 0.10386073656899682,
+    "deterministic": 0.09386610634798281,
+    "posterior_next": 0.026334063209605324
+   },
+   {
+    "updates": 8000,
+    "samples16": 0.10489090320463543,
+    "prior_mean": 0.10175950879770428,
+    "deterministic": 0.09274717918453801,
+    "posterior_next": 0.02533135717153131
+   },
+   {
+    "updates": 9000,
+    "samples16": 0.09999517196482818,
+    "prior_mean": 0.09712313271947295,
+    "deterministic": 0.08824777501285776,
+    "posterior_next": 0.023658623199489248
+   },
+   {
+    "updates": 10000,
+    "samples16": 0.09750559545892534,
+    "prior_mean": 0.09406151200293658,
+    "deterministic": 0.08619624146106371,
+    "posterior_next": 0.02293046862746727
+   },
+   {
+    "updates": 11000,
+    "samples16": 0.09722495068962712,
+    "prior_mean": 0.094137269990266,
+    "deterministic": 0.08643196010189205,
+    "posterior_next": 0.023506309175031395
+   },
+   {
+    "updates": 12000,
+    "samples16": 0.09568407707945689,
+    "prior_mean": 0.09387055921017644,
+    "deterministic": 0.08630724166879707,
+    "posterior_next": 0.023550905581732444,
+    "samples256": 0.09145406167923747
+   }
+  ],
+  "learn_rssm_medium_22": [
+   {
+    "updates": 100,
+    "samples16": 0.449258801975609,
+    "prior_mean": 0.5032382795859319,
+    "deterministic": 0.44055794045863667,
+    "posterior_next": 0.3667831401471961
+   },
+   {
+    "updates": 200,
+    "samples16": 0.42563135296573384,
+    "prior_mean": 0.46966189818098375,
+    "deterministic": 0.4172979637638197,
+    "posterior_next": 0.3232584159073106
+   },
+   {
+    "updates": 300,
+    "samples16": 0.4148009842991304,
+    "prior_mean": 0.4506454203221803,
+    "deterministic": 0.40645677504389127,
+    "posterior_next": 0.3231473956325213
+   },
+   {
+    "updates": 400,
+    "samples16": 0.3929236443203162,
+    "prior_mean": 0.4157832041502011,
+    "deterministic": 0.38507870174304343,
+    "posterior_next": 0.3135303270909517
+   },
+   {
+    "updates": 500,
+    "samples16": 0.3818477478582565,
+    "prior_mean": 0.3957136088611048,
+    "deterministic": 0.3735986270877793,
+    "posterior_next": 0.31002719917772065
+   },
+   {
+    "updates": 600,
+    "samples16": 0.3788876594586489,
+    "prior_mean": 0.3888746806408242,
+    "deterministic": 0.36975036606051326,
+    "posterior_next": 0.30710604735904684
+   },
+   {
+    "updates": 700,
+    "samples16": 0.3638970266153583,
+    "prior_mean": 0.37357601013775893,
+    "deterministic": 0.356392916595045,
+    "posterior_next": 0.30076654878711095
+   },
+   {
+    "updates": 800,
+    "samples16": 0.3629429255737098,
+    "prior_mean": 0.3731568055882859,
+    "deterministic": 0.35594548488043504,
+    "posterior_next": 0.3048687990446595
+   },
+   {
+    "updates": 900,
+    "samples16": 0.35962311473008796,
+    "prior_mean": 0.3687298228670334,
+    "deterministic": 0.35326654126165474,
+    "posterior_next": 0.3075348839529598
+   },
+   {
+    "updates": 1000,
+    "samples16": 0.35755856675758013,
+    "prior_mean": 0.365721978917516,
+    "deterministic": 0.35069667400347787,
+    "posterior_next": 0.3072171949570712
+   },
+   {
+    "updates": 1100,
+    "samples16": 0.3546566896939435,
+    "prior_mean": 0.36234082607746976,
+    "deterministic": 0.34867823554642857,
+    "posterior_next": 0.3069608174293699
+   },
+   {
+    "updates": 1200,
+    "samples16": 0.3544960664340231,
+    "prior_mean": 0.3621895785775684,
+    "deterministic": 0.3488689756162016,
+    "posterior_next": 0.30803828651732923
+   },
+   {
+    "updates": 1300,
+    "samples16": 0.3470082209082886,
+    "prior_mean": 0.3539027760823551,
+    "deterministic": 0.34107712892148084,
+    "posterior_next": 0.30080798998699654
+   },
+   {
+    "updates": 1400,
+    "samples16": 0.349324578379496,
+    "prior_mean": 0.35594113259504745,
+    "deterministic": 0.343371562037532,
+    "posterior_next": 0.30580009161463617
+   },
+   {
+    "updates": 1500,
+    "samples16": 0.3464342347725069,
+    "prior_mean": 0.35290109802772696,
+    "deterministic": 0.34066553903113644,
+    "posterior_next": 0.3028720822265456
+   },
+   {
+    "updates": 1600,
+    "samples16": 0.33322127648482464,
+    "prior_mean": 0.3386510407361008,
+    "deterministic": 0.32704993745965905,
+    "posterior_next": 0.2888949432370995
+   },
+   {
+    "updates": 1700,
+    "samples16": 0.3091857578164834,
+    "prior_mean": 0.31510587740598445,
+    "deterministic": 0.3029270266806514,
+    "posterior_next": 0.2633697985966451
+   },
+   {
+    "updates": 1800,
+    "samples16": 0.29366948611767457,
+    "prior_mean": 0.2998334757055038,
+    "deterministic": 0.2859962249110098,
+    "posterior_next": 0.2441882119777632
+   },
+   {
+    "updates": 1900,
+    "samples16": 0.2688862723291669,
+    "prior_mean": 0.27336899862968994,
+    "deterministic": 0.2596116068492601,
+    "posterior_next": 0.213858975895025
+   },
+   {
+    "updates": 2000,
+    "samples16": 0.26117704272762415,
+    "prior_mean": 0.2639957134157668,
+    "deterministic": 0.249556846467081,
+    "posterior_next": 0.2002428710089216
+   },
+   {
+    "updates": 3000,
+    "samples16": 0.15125581472175645,
+    "prior_mean": 0.15051740448485118,
+    "deterministic": 0.13336739309968634,
+    "posterior_next": 0.0523709671570807
+   },
+   {
+    "updates": 4000,
+    "samples16": 0.1396046312395207,
+    "prior_mean": 0.13821720373452465,
+    "deterministic": 0.12400283545972457,
+    "posterior_next": 0.041955621662355294
+   },
+   {
+    "updates": 5000,
+    "samples16": 0.12978287840633457,
+    "prior_mean": 0.1279535245736181,
+    "deterministic": 0.11567408631660901,
+    "posterior_next": 0.03820251259475698
+   },
+   {
+    "updates": 6000,
+    "samples16": 0.12072535809108642,
+    "prior_mean": 0.11820476767657194,
+    "deterministic": 0.10740973008362896,
+    "posterior_next": 0.03434818265104121
+   },
+   {
+    "updates": 7000,
+    "samples16": 0.11311126956009292,
+    "prior_mean": 0.11034113012906817,
+    "deterministic": 0.10098110627272193,
+    "posterior_next": 0.030017643928049186
+   },
+   {
+    "updates": 8000,
+    "samples16": 0.10753001990228504,
+    "prior_mean": 0.10646382921940621,
+    "deterministic": 0.09689399810085368,
+    "posterior_next": 0.029518071814711614
+   },
+   {
+    "updates": 9000,
+    "samples16": 0.10312358954307424,
+    "prior_mean": 0.10126719083945662,
+    "deterministic": 0.0929150410890145,
+    "posterior_next": 0.026838479598799016
+   },
+   {
+    "updates": 10000,
+    "samples16": 0.10037410474147795,
+    "prior_mean": 0.09793576543464573,
+    "deterministic": 0.08989842417860756,
+    "posterior_next": 0.02598219483275659
+   },
+   {
+    "updates": 11000,
+    "samples16": 0.09836053478207603,
+    "prior_mean": 0.0953931747347529,
+    "deterministic": 0.08813913281989669,
+    "posterior_next": 0.024178817412346298
+   },
+   {
+    "updates": 12000,
+    "samples16": 0.0969313260945245,
+    "prior_mean": 0.09356777303127803,
+    "deterministic": 0.0870437328749005,
+    "posterior_next": 0.025091533610637668,
+    "samples256": 0.09246085147977315
+   }
+  ],
+  "learn_rssm_medium_33": [
+   {
+    "updates": 100,
+    "samples16": 0.47527606166444175,
+    "prior_mean": 0.527486421715321,
+    "deterministic": 0.4671972970584972,
+    "posterior_next": 0.37042339918193046
+   },
+   {
+    "updates": 200,
+    "samples16": 0.4304745530704329,
+    "prior_mean": 0.46770848742407634,
+    "deterministic": 0.42226438838166486,
+    "posterior_next": 0.3226551801680307
+   },
+   {
+    "updates": 300,
+    "samples16": 0.41778258850119043,
+    "prior_mean": 0.44723709932232375,
+    "deterministic": 0.40859256034915775,
+    "posterior_next": 0.320552893198456
+   },
+   {
+    "updates": 400,
+    "samples16": 0.4004996637532369,
+    "prior_mean": 0.4218690042942189,
+    "deterministic": 0.39171016360563565,
+    "posterior_next": 0.3174052929885756
+   },
+   {
+    "updates": 500,
+    "samples16": 0.3914026961658776,
+    "prior_mean": 0.4030717538534955,
+    "deterministic": 0.38148378539523004,
+    "posterior_next": 0.3136659039016568
+   },
+   {
+    "updates": 600,
+    "samples16": 0.3787877757666004,
+    "prior_mean": 0.3861059668479772,
+    "deterministic": 0.3683157862570553,
+    "posterior_next": 0.30642342887992596
+   },
+   {
+    "updates": 700,
+    "samples16": 0.36883067139785075,
+    "prior_mean": 0.3749398853313991,
+    "deterministic": 0.3592140954686468,
+    "posterior_next": 0.3043434561586202
+   },
+   {
+    "updates": 800,
+    "samples16": 0.36366803488216237,
+    "prior_mean": 0.36936364285398926,
+    "deterministic": 0.35513509982801333,
+    "posterior_next": 0.3049357049559636
+   },
+   {
+    "updates": 900,
+    "samples16": 0.36028338328816745,
+    "prior_mean": 0.3651905491608437,
+    "deterministic": 0.35218933488106113,
+    "posterior_next": 0.30635275308483617
+   },
+   {
+    "updates": 1000,
+    "samples16": 0.3556013646712911,
+    "prior_mean": 0.3607357901117335,
+    "deterministic": 0.3477469288440954,
+    "posterior_next": 0.30360043112687296
+   },
+   {
+    "updates": 1100,
+    "samples16": 0.35353419738526404,
+    "prior_mean": 0.35772642119777837,
+    "deterministic": 0.3458599275320632,
+    "posterior_next": 0.3039282003505094
+   },
+   {
+    "updates": 1200,
+    "samples16": 0.34469985593809466,
+    "prior_mean": 0.3490520601715478,
+    "deterministic": 0.33736509124056685,
+    "posterior_next": 0.29967309962181043
+   },
+   {
+    "updates": 1300,
+    "samples16": 0.34684661255833815,
+    "prior_mean": 0.35146584907298306,
+    "deterministic": 0.3396433607760795,
+    "posterior_next": 0.30037177639073265
+   },
+   {
+    "updates": 1400,
+    "samples16": 0.32331449590298633,
+    "prior_mean": 0.32852548269571924,
+    "deterministic": 0.3153457995610824,
+    "posterior_next": 0.27620126658247046
+   },
+   {
+    "updates": 1500,
+    "samples16": 0.2965457709519947,
+    "prior_mean": 0.30130971365125386,
+    "deterministic": 0.28791318166889074,
+    "posterior_next": 0.24704582772614814
+   },
+   {
+    "updates": 1600,
+    "samples16": 0.26932965987036966,
+    "prior_mean": 0.2738644864206333,
+    "deterministic": 0.2597844786265034,
+    "posterior_next": 0.21516169571430668
+   },
+   {
+    "updates": 1700,
+    "samples16": 0.2689165619298452,
+    "prior_mean": 0.2724213901797704,
+    "deterministic": 0.2568683262984006,
+    "posterior_next": 0.2106018969581535
+   },
+   {
+    "updates": 1800,
+    "samples16": 0.2439761899796733,
+    "prior_mean": 0.24515602839605743,
+    "deterministic": 0.230871800712808,
+    "posterior_next": 0.18128364298305974
+   },
+   {
+    "updates": 1900,
+    "samples16": 0.2328430033905176,
+    "prior_mean": 0.23253324855765836,
+    "deterministic": 0.2172184557796175,
+    "posterior_next": 0.16685779758961142
+   },
+   {
+    "updates": 2000,
+    "samples16": 0.22522027360770416,
+    "prior_mean": 0.2244284832472018,
+    "deterministic": 0.2100540142350595,
+    "posterior_next": 0.15525334580577618
+   },
+   {
+    "updates": 3000,
+    "samples16": 0.15062632619008703,
+    "prior_mean": 0.1449568713559472,
+    "deterministic": 0.13331438269970564,
+    "posterior_next": 0.05086642550437079
+   },
+   {
+    "updates": 4000,
+    "samples16": 0.1367399241625602,
+    "prior_mean": 0.13241489785311628,
+    "deterministic": 0.12159829791747648,
+    "posterior_next": 0.04028379452030275
+   },
+   {
+    "updates": 5000,
+    "samples16": 0.12785247787461038,
+    "prior_mean": 0.12246895497927691,
+    "deterministic": 0.1132161162842847,
+    "posterior_next": 0.036730144408273546
+   },
+   {
+    "updates": 6000,
+    "samples16": 0.12202943068285232,
+    "prior_mean": 0.1162916067689422,
+    "deterministic": 0.10826456883075058,
+    "posterior_next": 0.03490883914395203
+   },
+   {
+    "updates": 7000,
+    "samples16": 0.11279925913255823,
+    "prior_mean": 0.10605019889122669,
+    "deterministic": 0.09920275309804218,
+    "posterior_next": 0.031074532203907403
+   },
+   {
+    "updates": 8000,
+    "samples16": 0.10711316886275317,
+    "prior_mean": 0.10174510974649324,
+    "deterministic": 0.09554238310224124,
+    "posterior_next": 0.028752883901225896
+   },
+   {
+    "updates": 9000,
+    "samples16": 0.10424738280110919,
+    "prior_mean": 0.09851039340655918,
+    "deterministic": 0.09290292568669399,
+    "posterior_next": 0.028790032906986902
+   },
+   {
+    "updates": 10000,
+    "samples16": 0.10019575667394091,
+    "prior_mean": 0.09452935425930954,
+    "deterministic": 0.0886324528583155,
+    "posterior_next": 0.026713798228974746
+   },
+   {
+    "updates": 11000,
+    "samples16": 0.09776652854110189,
+    "prior_mean": 0.09153085089149045,
+    "deterministic": 0.08644839260002508,
+    "posterior_next": 0.025579814642805104
+   },
+   {
+    "updates": 12000,
+    "samples16": 0.0966703996354386,
+    "prior_mean": 0.09087425941590925,
+    "deterministic": 0.08593049806011503,
+    "posterior_next": 0.02514645134457018,
+    "samples256": 0.0897431357912326
+   }
+  ],
+  "learn_rssm_small_11": [
+   {
+    "updates": 1000,
+    "samples16": 0.4220976792586587,
+    "prior_mean": 0.4195450278453551,
+    "deterministic": 0.4087956309615951,
+    "posterior_next": 0.3014879197636005
+   },
+   {
+    "updates": 2000,
+    "samples16": 0.4248034035167002,
+    "prior_mean": 0.4198372293161121,
+    "deterministic": 0.41163820300032994,
+    "posterior_next": 0.30147767374541334
+   },
+   {
+    "updates": 6000,
+    "samples16": 0.3586581579493937,
+    "prior_mean": 0.360716748561443,
+    "deterministic": 0.3526353944197718,
+    "posterior_next": 0.3050792506586555
+   },
+   {
+    "updates": 12000,
+    "samples16": 0.2545845252596591,
+    "prior_mean": 0.25796556457221786,
+    "deterministic": 0.24903621066122286,
+    "posterior_next": 0.21155788010376217,
+    "samples256": 0.25102857389003697
+   }
+  ],
+  "learn_rssm_large_11": [
+   {
+    "updates": 1000,
+    "samples16": 0.22419523260734445,
+    "prior_mean": 0.23287481435335758,
+    "deterministic": 0.20761570296204945,
+    "posterior_next": 0.14841474248576597
+   },
+   {
+    "updates": 2000,
+    "samples16": 0.1353505107428361,
+    "prior_mean": 0.13972895438828267,
+    "deterministic": 0.12157130137723289,
+    "posterior_next": 0.044472657090413044
+   },
+   {
+    "updates": 6000,
+    "samples16": 0.0977432695214966,
+    "prior_mean": 0.09664848621065118,
+    "deterministic": 0.08927056968794798,
+    "posterior_next": 0.02850892332998635
+   },
+   {
+    "updates": 12000,
+    "samples16": 0.09689814202662689,
+    "prior_mean": 0.09692634972419058,
+    "deterministic": 0.0912666946726123,
+    "posterior_next": 0.03435838946421717,
+    "samples256": 0.0940295291796228
+   }
+  ]
+ },
+ "history_target": {
+  "samples16": 0.020631641149520874,
+  "prior_mean": 0.023769281804561615,
+  "deterministic": 0.02035536989569664
+ }
+}

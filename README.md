@@ -53,6 +53,9 @@ design.
 | `src/physical_intervene/constants.py` | every fixed value from the design, in one place |
 | `tests/` | unit tests |
 | `scripts/check_docs.py` | docs checks run in CI: relative links resolve, no em dashes |
+| `scripts/phase0_env.py` | Phase 0: smoke data and the environment checks (simulator only) |
+| `scripts/phase0_training.py` | Phase 0: the training-side checks (data, wiring, learning, compute); needs the `models` extra |
+| `scripts/phase0_rssm_prediction_rules.py` | Phase 0: rescores saved rssm checkpoints under other prediction rules (run after `phase0_training.py`) |
 
 Planned, following evm-intervene: `src/physical_intervene/` simulator, models, baselines and
 metrics; `scripts/` for data generation, training, scoring and freezing; `frozen/` for the
@@ -63,10 +66,12 @@ freeze records; `results/` for the result JSON; `docs/REPRODUCE.md`.
 Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv sync --locked --group dev
+uv sync --locked --group dev --extra models
 uv run ruff check src tests
 uv run pytest -q
 ```
+
+The `models` extra installs torch, needed by the learned models and their tests.
 
 ## Licence
 

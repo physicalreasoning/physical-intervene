@@ -192,3 +192,44 @@ SMOKE_POOL_OFFSET = 100_000  # the 1,000-episode coverage pool
 SMOKE_STATES_OFFSET = 200_000  # one fresh episode per test-like state, skipped seeds included
 # Positive-control feasibility: policy draws per state for m (DESIGN.md, Controls).
 FEASIBILITY_POLICY_DRAWS = 100
+
+# ---------------------------------------------------------------------------------------------
+# Implementation settings chosen in Phase 0 (milestone 2): data pipeline and models. The
+# *set by pilot* items stay out of this file; Phase 0 uses placeholders recorded in its own record.
+# ---------------------------------------------------------------------------------------------
+
+# Phase flag (SMOKE_TEST.md, No-leak rule): while it is "phase0", the scoring entry point refuses
+# any trained checkpoint. Every checkpoint records the phase it was trained in.
+PHASE = "phase0"
+
+# History before step HISTORY_LEN: missing (state, action) pairs are padded with copies of s_0 and
+# a zero action, and a mask input (1 real, 0 padding) marks them. The same for every model.
+HISTORY_PAD_ACTION = 0.0
+# Std floors of the full state change (training loss), in the order of sim.OBS_NAMES: box x, y (m),
+# cos, sin, vx, vy (m/s), omega (rad/s), pusher x, y (m), vx, vy (m/s).
+DELTA_STATE_STD_FLOORS = (1e-4, 1e-4, 1e-3, 1e-3, 1e-4, 1e-4, 1e-3, 1e-4, 1e-4, 1e-4, 1e-4)
+
+# Layer layouts. Each architecture has one free size per width, solved so its parameter count is
+# the closest to WIDTH_PARAM_COUNTS (rssm at medium width is fixed by DESIGN.md instead).
+MLP_RESIDUAL_BLOCKS = 2  # each block: two linear layers with a skip connection
+GRU_HEAD_HIDDEN_LAYERS = 2  # head on (h_t, a_t)
+RSSM_LATENT_PER_UNIT = RSSM_MEDIUM_LATENT_DIM / RSSM_MEDIUM_GRU_UNITS  # latent size per GRU unit
+RSSM_DECODER_HIDDEN_PER_UNIT = 0.25  # decoder hidden layer size per GRU unit
+RSSM_MIN_STD = 0.1  # floor on the latent standard deviation, as in PlaNet
+RSSM_OBS_STD = 1.0  # Gaussian observation model, in standardised units of the state change
+CONTACT_WM_HIDDEN_LAYERS = 2  # correction network
+# Generic initial values of contact_wm's other learned numbers (not MuJoCo's values).
+CONTACT_WM_INIT_LAG_S = 0.02  # pusher's first-order lag time constant
+CONTACT_WM_INIT_SHARPNESS_PER_M = 1_000.0  # contact indicator: sigmoid(sharpness * penetration)
+# Limit-surface constant of a uniform square of half-width b: mean distance of its points from the
+# centre, (sqrt(2) + asinh(1)) / 3 * b.
+UNIFORM_SQUARE_LIMIT_SURFACE_FACTOR = 0.7652
+GRAVITY_M_S2 = 9.81  # table friction: deceleration = friction coefficient x g
+CONTACT_WM_SLIP_SMOOTHING = 20.0  # softness of the stick or slip clamp, in units of 1 / tan(angle)
+CONTACT_WM_PUSH_SMOOTHING_M_S = 0.002  # softness of the "pusher moves into the box" gate
+CONTACT_WM_STOP_SMOOTHING_M_S = 0.001  # softness of table friction stopping the box
+
+# Training pipeline checks (SMOKE_TEST.md, part 2 and 3): "near 0" means a std-MSE below this,
+# 1% of the variance of the target (predicting the target's mean gives about 1).
+NEAR_ZERO_STD_MSE = 0.01
+OVERFIT_EXAMPLES = 64
