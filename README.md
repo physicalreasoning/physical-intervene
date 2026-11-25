@@ -25,7 +25,8 @@ matters most.
   on the push stratum (contact that moves the box; grazes reported separately), alongside
   observational validation loss.
 - **Gates:** G0 bit-exact replay and controls; G1 matched-loss pairs must differ in intervention
-  error (95% interval over held-out states and seeds excluding zero, relative gap ≥ 20%);
+  error (Welch's t-test over 20 seeds per architecture, 95% interval excluding zero, relative
+  gap ≥ 20%);
   G2 rank correlation between validation loss and intervention error.
 
 Full design: [docs/DESIGN.md](docs/DESIGN.md). Results use the reporting format shared with
@@ -58,6 +59,9 @@ design.
 | `scripts/phase0_training.py` | Phase 0: the training-side checks (data, wiring, learning, compute); needs the `models` extra |
 | `scripts/phase0_model_exploration.py` | Phase 0 exploration: candidates for the model with a different objective (rssm with DreamerV3's KL terms, a Gaussian NLL network, `mlp-ms`), compared on smoke data |
 | `scripts/phase0_rssm_prediction_rules.py` | Phase 0 exploration: rescores the first draft's rssm checkpoints under other prediction rules |
+| `scripts/phase0_intervention.py` | Phase 0: the intervention-side checks with stand-ins only (scorer, gates, control readings, repeated pairs, format check); needs the `models` extra |
+| `scripts/phase0_seed_interval.py` | Phase 0 exploration: G1's false-alarm rate and power at large seed spreads and at the test set's size, for the design's interval and two wider ones (stand-ins only) |
+| `scripts/phase0_record.py` | Phase 0: writes the record, `results/phase0_smoke.json`, from the three milestones' records |
 
 Planned, following evm-intervene: `src/physical_intervene/` simulator, models, baselines and
 metrics; `scripts/` for data generation, training, scoring and freezing; `frozen/` for the

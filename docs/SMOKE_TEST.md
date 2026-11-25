@@ -17,7 +17,7 @@ computes it. The pipeline is checked in two halves that are never joined:
 | Half | What runs | Models allowed |
 | --- | --- | --- |
 | **Training side** | data generation, training, checkpoints, L_obs on recorded actions, V*, matching, exclusions | real architectures, trained on smoke data or on made-up targets |
-| **Intervention side** | interventions, strata, scoring, gap, interval, p, gates, verdicts, result file | **stand-ins only**: `oracle`, `copy`, untrained networks, hand-built noisy pairs |
+| **Intervention side** | interventions, strata, scoring, gap, interval, p, gates, verdicts, result file | **stand-ins only**: `oracle`, `copy`, `constvel` (fixed rules, nothing learned), untrained networks, hand-built noisy pairs. `knn` is fitted to the training data and is not scored on interventions |
 
 **Never computed in Phase 0**, not even "just to check it runs" and not even on smoke states:
 
@@ -113,21 +113,22 @@ The smoke split is small (50 episodes); these checks test mechanics, not final p
 
 ## Intervention-side checks, with stand-in models
 
-Intervention side only (see *No-leak rule*). Each stand-in has 10 "seeds", as the main models at medium width, so seed
-resampling is exercised at the size G1 uses. Each stand-in seed's prediction is the true target plus two Gaussian terms: a bias
+Intervention side only (see *No-leak rule*). Each stand-in has 20 "seeds", as the main models at medium width, so G1's
+seed-level test is exercised at the size G1 uses. Each stand-in seed's prediction is the true target plus two Gaussian terms: a bias
 shared by all of that seed's push transitions (drawn once per seed), and independent noise per
 transition. The shared bias makes seeds differ systematically, as trained seeds do; per-transition
 noise alone averages out over thousands of transitions and would make seed differences too
-small to test the seed resampling. The bias and noise scales are set from the spread expected
+small to test the seed-level test. The bias and noise scales are set from the spread expected
 between trained seeds and are reported.
 
 | Stand-in | Expected result | What it checks |
 | --- | --- | --- |
 | `oracle` (the simulator's own outcome) | E_int = 0, L_obs = 0 | targets, alignment of predictions and truth, scoring |
 | `copy` | equals the value computed directly from the box-motion data | std-MSE, target scaler, floors |
+| `constvel` (the box keeps its current velocity) | reported in the stand-in run's baseline block, not checked | the scorer's baseline path and the result file's baseline blocks |
 | untrained network | does not beat `copy` on L_obs | that G0.2 can fail |
-| `noisy-a` vs `noisy-a'` (same bias and noise scales, independent draws) | G1 *fail*; interval covers zero | no false positive, including from seed differences |
-| `noisy-a` vs `noisy-b` (noise on push transitions 1.5 × larger in standard deviation) | G1 *pass*; the estimated gap's interval covers the known gap | that G1 can pass, and the gap, interval and p are computed correctly |
+| `noisy-a` vs `noisy-a'` (same bias and noise scales, independent draws) | G1 *fail*; the interval is reported. A single draw's 95% interval excludes zero about 5% of the time even when it is right, so its calibration is checked on the repeated twins below | no false positive, including from seed differences |
+| `noisy-a` vs `noisy-b` (noise on push transitions 1.5 × larger in standard deviation) | G1 *pass*; the interval is reported. A single draw's 95% interval misses the known gap about 5% of the time even when it is right, so its calibration is checked on the repeated `noisy-b` and `noisy-c` pairs below | that G1 can pass, and the gap, interval and p are computed correctly |
 | synthetic checkpoint series with known L_obs curves, one never reaching V* | the expected matched checkpoints, the expected exclusion | matching, exclusions and the *not testable* path |
 | control pairs and verdicts: stand-in positive and twin pairs set to separate or not in every combination | each `gate_g1_reading` value, `gate_positive_control_pass` and `gate_negative_controls` come out as DESIGN.md defines | the control readings and the G1 verdict logic |
 | synthetic checkpoint series with a gap that is present at V* and absent at best checkpoints, and series giving each *Gap along training* reading | `matched_only` true for the first; *overlap*, *persistent*, *closing* and *mixed* each come out as DESIGN.md defines | the reported matching analyses |
@@ -135,13 +136,13 @@ between trained seeds and are reported.
 **Repeated pairs: false-alarm and detection rates.** One run of a pair is one draw; a correct
 test still separates a no-difference pair now and then. So the following are each repeated 200
 times with fresh draws (stand-in predictions only; the smoke states stay fixed), with the full G1
-procedure (states and seeds resampled) and, beside it, the states-only interval:
+procedure (Welch's t-test over the seeds) and, beside it, the states-only interval:
 
 | Pair | Reported | Pass condition |
 | --- | --- | --- |
-| `noisy-a` vs `noisy-a'` (twins) | fraction of runs that separate | full procedure: at most 5% (10 of 200). The states-only rate is reported, not gated; if it is clearly higher, that is the reason the design resamples seeds |
-| `noisy-a` vs `noisy-c` (push noise set so the true relative gap is 25%, just above the 20% threshold) | fraction of runs that separate | reported, not gated: the detection rate near the threshold, i.e. how sensitive G1 can be with this many states and seeds |
-| `noisy-a` vs `noisy-b` (push noise 1.5 × larger, a gap of roughly 125%) | fraction of runs that separate | at least 95% |
+| `noisy-a` vs `noisy-a'` (twins) | fraction of runs that separate; fraction whose interval excludes zero; fraction whose interval covers the known gap (zero) | full procedure: at most 5% separate (10 of 200), and the interval excludes zero in at most 10% (20 of 200; a calibrated 95% interval gives about 5%, and 10% is about 3 standard deviations above it over 200 draws). The states-only rates and the coverage are reported, not gated; if the states-only rates are clearly higher, that is the reason the design compares architectures over their seeds |
+| `noisy-a` vs `noisy-c` (push noise set so the true relative gap is 25%, just above the 20% threshold) | fraction of runs that separate; fraction whose interval covers the known gap | the interval covers the known gap in at least 90% of runs (a calibrated 95% interval gives about 95%, and 90% is about 3 standard deviations below it over 200 draws). The separation rate is reported, not gated: the detection rate near the threshold, i.e. how sensitive G1 can be with this many states and seeds |
+| `noisy-a` vs `noisy-b` (push noise 1.5 × larger, a gap of roughly 110% to 125%, depending on the share of the per-seed bias) | fraction of runs that separate; fraction whose interval covers the known gap | at least 95% separate, and the interval covers the known gap in at least 90% |
 
 The twin false-alarm rate is also the expected chance that a real negative control separates
 and voids a G1 pass; it is quoted beside the G1 verdict. If a pass condition fails, the design is

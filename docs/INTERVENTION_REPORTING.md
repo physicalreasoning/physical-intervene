@@ -34,8 +34,8 @@ Each test fixes these before training, in its own design file.
 | match screen | two models pass if \|L_a − L_b\| / min(L_a, L_b) ≤ 0.05, using seed-mean matched L_obs |
 | consistency gap, Δ_int | E_int(challenger) − E_int(reference) at matched checkpoints, on the hard stratum |
 | relative gap | Δ_int / E_int(reference) |
-| interval | 95% percentile interval from 5,000 paired bootstrap replicates, resampling held-out states with replacement, shared across the two models. A test may also resample other units (e.g. seeds); the `resampled` key, or this document for evm-intervene, says which. |
-| p | min(1, 2 × (min(#Δ\* ≤ 0, #Δ\* ≥ 0) + 1) / 5,001), Holm-adjusted across **every pair tested**, whether or not it passes the match screen |
+| interval | 95% percentile interval from 5,000 paired bootstrap replicates, resampling held-out states with replacement, shared across the two models. A test may also resample other units (e.g. seeds); the `resampled` key, or this document for evm-intervene, says which. A test may instead compare seeds directly (physical-intervene: Welch's t-test on the per-seed values); its `method` key says so. |
+| p | min(1, 2 × (min(#Δ\* ≤ 0, #Δ\* ≥ 0) + 1) / 5,001) for a bootstrap interval (a test with a seed-level interval uses that test's two-sided p), Holm-adjusted across **every pair tested**, whether or not it passes the match screen |
 | rank correlation | Spearman ρ(L_obs, E_int) across all main runs at best checkpoints, with a 95% interval from 5,000 bootstrap resamples of runs |
 
 **Gates.** The rules below are common to every test. Each test fixes in its design what
@@ -134,7 +134,7 @@ Keys use each test's own names. This table maps them, so a reader can line the t
 | training length, top level | `epochs` | `updates` |
 | other per-stratum errors | `liquidity_rmse` | `angle_rmse_deg` |
 | G1 reference | the anchor, `conservation_wm` | in each pair, the member with the lower E_int |
-| interval resamples | held-out states (`n_held_out_checkpoints` of them); seeds fixed | held-out states and seeds; the states-only interval is reported beside it |
+| gated interval | bootstrap over held-out states (`n_held_out_checkpoints` of them); seeds fixed | Welch's t-test over the seeds, test states fixed; the states-only bootstrap interval is reported beside it |
 
 ### Where each quantity is read
 
@@ -188,7 +188,8 @@ and G2 *decoupled* (ρ = 0.39). Its crash-exposed sensitivity arm is G1 *pass* a
   - `format_version`: version of this document the file follows;
   - `strata`: `{"hard": [...], "easy": [...], "hard_block": "..."}`, the stratum names;
   - `units`: `{"physical_unit": "..."}`;
-  - `resampled`, on each gap: the units the interval resamples, e.g. `["state", "seed"]`;
+  - `resampled`, on each bootstrap gap: the units the interval resamples, e.g. `["state"]`;
+  - `method`, on each gap: how its interval and p are computed, e.g. `"welch_t_over_seeds"`;
   - `gates.gate_g0_valid`, `gates.gate_g1_reading` (`"pass"`, `"fail"`, `"not_testable"`),
     `gates.gate_g2_reading` (`"decoupled"`, `"inconclusive"`, `"refuted"`).
 - A model that is a control, not a main model, goes under `controls`, with the same layout as
@@ -206,7 +207,7 @@ keys, `*_price_rmse_bps` beside L_obs, and the per-seed `*_cliff_price_rmse_bps`
 
 **physical-intervene.** Written to this format from the start, with its own names (table
 above) and all optional keys. It also adds `matched_push_gap_states_only` (the interval
-resampling states only, as evm-intervene's), `decoupled_by_interval` in G2, `width` in `seed_checkpoints`, `controls` for its five control
+resampling states only, as evm-intervene's), `decoupled_by_interval` in G2, `width` in `seed_checkpoints`, `controls` for its six control
 models, `control_pairs` with `gates.gate_positive_control_pass` and `gates.gate_negative_controls`
 for its positive and negative control pairs, two extra `gate_g1_reading` values
 (`inconclusive_not_specific`, `inconclusive_not_sensitive`), `logged_action` per model (the
@@ -216,9 +217,10 @@ and at other shared loss levels), and `updates` and `met_plateau_criterion` per 
 
 ## Open questions
 
-1. **Seed resampling in G1.** physical-intervene resamples seeds as well as states, so that a
-   seed-to-seed difference cannot pass as an architecture difference. evm-intervene resamples
-   states only. Should evm-intervene also resample seeds, so that both G1s mean the same thing?
+1. **Seeds in G1.** physical-intervene compares architectures over their seeds (Welch's t-test
+   on per-seed values, 20 seeds), so that a seed-to-seed difference cannot pass as an
+   architecture difference. evm-intervene averages its 5 seeds and resamples states only. Should
+   evm-intervene also treat seeds as a source of uncertainty, so that both G1s mean the same thing?
    Until then, compare evm-intervene's `matched_cliff_gap` with physical-intervene's
    `matched_push_gap_states_only`.
 2. **Reference model in G1.** evm-intervene tests each model against one anchor

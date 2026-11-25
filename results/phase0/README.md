@@ -11,7 +11,12 @@ design change; each keeps its own report, so earlier attempts stay readable. The
 | `milestone1/attempt2/` | rerun on new smoke seeds: push label against the no-contact reference; amd64 replay check | `REPORT_attempt2.md`, `REPORT_amd64.md` | `data/phase0/milestone1/attempt2/` (the smoke data every later milestone uses) |
 | `milestone2/attempt0/` | data pipeline, models, training-side checks; first lineup, with `rssm` | `REPORT_milestone2.md` | checkpoints of the `rssm` runs in `data/phase0/milestone2/attempt0/checkpoints/` (the others were identical to attempt 1's and were overwritten by it) |
 | `milestone2/attempt1/` | rerun with `mlp-ms` in place of `rssm` and the finer checkpoint schedule | `REPORT_milestone2.md` | `data/phase0/milestone2/attempt1/checkpoints/` |
+| `milestone3/attempt0/` | intervention side with stand-ins only: scorer, gates, control readings, repeated pairs, the stand-in run's result JSON and its format check; 10 seeds; also the explorations of G1's interval at large seed spreads | `REPORT_milestone3.md` | `data/phase0/milestone3/attempt0/` (histories of the smoke states, untrained networks) |
+| `milestone3/attempt1/` | rerun after the design change to 20 seeds and Welch's t-test over the seeds for G1 | `REPORT_milestone3.md` | `data/phase0/milestone3/attempt1/` |
 | `exploration/` | candidates for the model with a different objective (rssm with DreamerV3's KL terms, a Gaussian NLL network, `mlp-ms`), on smoke data | none; see milestone 2 attempt 1's report | none kept |
 
 The current attempt of each milestone is set in `src/physical_intervene/constants.py`
-(`SMOKE_ATTEMPT`, `MILESTONE2_ATTEMPT`).
+(`SMOKE_ATTEMPT`, `MILESTONE2_ATTEMPT`, `MILESTONE3_ATTEMPT`).
+
+The Phase 0 record is `results/phase0_smoke.json` (written by `scripts/phase0_record.py`) with its
+report, `REPORT_phase0.md`, in this folder.
