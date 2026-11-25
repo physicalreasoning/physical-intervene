@@ -82,8 +82,9 @@ PUSH_MIN_ROTATION_DEG = 1.0
 
 # Models.
 HISTORY_LEN = 8
+# rssm is not in the design (replaced by mlp-ms in Phase 0); kept for the exploration scripts that
+# reproduce the evidence. Structure and objective follow PlaNet (Hafner et al. 2019, Appendix A).
 RSSM_PREDICTION_SAMPLES = 16
-# RSSM structure and objective, following PlaNet (Hafner et al. 2019, Appendix A).
 RSSM_SEQUENCE_LEN = 50
 RSSM_FREE_NATS = 3.0
 RSSM_KL_WEIGHT = 1.0
@@ -104,7 +105,14 @@ WIDTH_PARAM_COUNTS: tuple[int, ...] = (10_000, 100_000, 1_000_000)
 PLATEAU_CHECKPOINTS = 10
 PLATEAU_MIN_REL_IMPROVEMENT = 0.01
 BUDGET_FACTOR_OVER_PLATEAU = 1.5
-MAIN_ARCHITECTURES: tuple[str, ...] = ("mlp", "gru", "rssm", "contact_wm")
+MAIN_ARCHITECTURES: tuple[str, ...] = ("mlp", "gru", "mlp-ms", "contact_wm")
+# mlp-ms (the model with a different objective): mlp's network trained on a weighted multi-step loss
+# (Benechehab et al. 2024). From a true start the model is rolled out open loop for
+# MULTI_STEP_HORIZON steps (true actions; its own predicted states fed back as s and into the
+# history), and the loss is the weighted mean over the steps of the shared loss on each step's state
+# error, in units of the state change's scale. Horizon and weights are fixed, not tuned.
+MULTI_STEP_HORIZON = 4
+MULTI_STEP_WEIGHTS: tuple[float, ...] = (0.25, 0.25, 0.25, 0.25)
 # contact_wm: sub-steps per control step, and generic initial values for its learned parameters
 # (never MuJoCo's values; recorded in freeze 1).
 CONTACT_WM_SUBSTEPS = 10
@@ -117,7 +125,10 @@ KNN_NEIGHBOURS = 5
 # L_mlp + p^2 * D_obs <= V*, computed after the main runs (DESIGN.md, Controls).
 SHORTCUT_P_GRID: tuple[float, ...] = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
 CHECKPOINT_EVERY_UPDATES = 1_000
-# Denser checkpoints early, where L_obs falls fastest, so matching at V* does not overshoot.
+# Denser checkpoints early, where L_obs falls fastest, so matching at V* does not overshoot: every
+# 10 updates up to 1,000, every 100 up to 2,000, then every 1,000.
+CHECKPOINT_FINE_EVERY_UPDATES = 10
+CHECKPOINT_FINE_UNTIL_UPDATES = 1_000
 CHECKPOINT_DENSE_EVERY_UPDATES = 100
 CHECKPOINT_DENSE_UNTIL_UPDATES = 2_000
 # Gap along training (DESIGN.md, Secondary analyses): shared levels as multiples of V*, plus the
@@ -187,8 +198,68 @@ SEED_RANGE_PILOT = (4_000_000, 5_000_000)
 # reference.
 SMOKE_ATTEMPT = 2
 SMOKE_ATTEMPT_STRIDE = 300_000
+# Phase 0 milestone 2 attempt: 0 was the first lineup (with rssm); 1 has mlp-ms and the finer
+# checkpoint schedule. Results in results/phase0/milestone2/attemptN/, checkpoints in
+# data/phase0/milestone2/attemptN/checkpoints/.
+MILESTONE2_ATTEMPT = 1
 SMOKE_EPISODES_OFFSET = 0  # the 50 smoke episodes
 SMOKE_POOL_OFFSET = 100_000  # the 1,000-episode coverage pool
 SMOKE_STATES_OFFSET = 200_000  # one fresh episode per test-like state, skipped seeds included
 # Positive-control feasibility: policy draws per state for m (DESIGN.md, Controls).
 FEASIBILITY_POLICY_DRAWS = 100
+
+# ---------------------------------------------------------------------------------------------
+# Implementation settings chosen in Phase 0 (milestone 2): data pipeline and models. The
+# *set by pilot* items stay out of this file; Phase 0 uses placeholders recorded in its own record.
+# ---------------------------------------------------------------------------------------------
+
+# Phase flag (SMOKE_TEST.md, No-leak rule): while it is "phase0", the scoring entry point refuses
+# any trained checkpoint. Every checkpoint records the phase it was trained in.
+PHASE = "phase0"
+
+# History before step HISTORY_LEN: missing (state, action) pairs are padded with copies of s_0 and
+# a zero action, and a mask input (1 real, 0 padding) marks them. The same for every model.
+HISTORY_PAD_ACTION = 0.0
+# Std floors of the full state change (training loss), in the order of sim.OBS_NAMES: box x, y (m),
+# cos, sin, vx, vy (m/s), omega (rad/s), pusher x, y (m), vx, vy (m/s).
+DELTA_STATE_STD_FLOORS = (1e-4, 1e-4, 1e-3, 1e-3, 1e-4, 1e-4, 1e-3, 1e-4, 1e-4, 1e-4, 1e-4)
+
+# Layer layouts. Each architecture has one free size per width, solved so its parameter count is
+# the closest to WIDTH_PARAM_COUNTS (rssm, exploration only, is fixed at medium width).
+MLP_RESIDUAL_BLOCKS = 2  # each block: two linear layers with a skip connection
+GRU_HEAD_HIDDEN_LAYERS = 2  # head on (h_t, a_t)
+RSSM_LATENT_PER_UNIT = RSSM_MEDIUM_LATENT_DIM / RSSM_MEDIUM_GRU_UNITS  # latent size per GRU unit
+RSSM_DECODER_HIDDEN_PER_UNIT = 0.25  # decoder hidden layer size per GRU unit
+RSSM_MIN_STD = 0.1  # floor on the latent standard deviation, as in PlaNet
+RSSM_OBS_STD = 1.0  # Gaussian observation model, in standardised units of the state change
+CONTACT_WM_HIDDEN_LAYERS = 2  # correction network
+# Generic initial values of contact_wm's other learned numbers (not MuJoCo's values).
+CONTACT_WM_INIT_LAG_S = 0.02  # pusher's first-order lag time constant
+CONTACT_WM_INIT_SHARPNESS_PER_M = 1_000.0  # contact indicator: sigmoid(sharpness * penetration)
+# Limit-surface constant of a uniform square of half-width b: mean distance of its points from the
+# centre, (sqrt(2) + asinh(1)) / 3 * b.
+UNIFORM_SQUARE_LIMIT_SURFACE_FACTOR = 0.7652
+GRAVITY_M_S2 = 9.81  # table friction: deceleration = friction coefficient x g
+CONTACT_WM_SLIP_SMOOTHING = 20.0  # softness of the stick or slip clamp, in units of 1 / tan(angle)
+CONTACT_WM_PUSH_SMOOTHING_M_S = 0.002  # softness of the "pusher moves into the box" gate
+CONTACT_WM_STOP_SMOOTHING_M_S = 0.001  # softness of table friction stopping the box
+
+# Training pipeline checks (SMOKE_TEST.md, part 2 and 3): "near 0" means a std-MSE below this,
+# 1% of the variance of the target (predicting the target's mean gives about 1).
+NEAR_ZERO_STD_MSE = 0.01
+OVERFIT_EXAMPLES = 64
+
+# Exploration only (not in DESIGN.md): other candidates for the model with a different objective,
+# compared on smoke data in Phase 0.
+# pnn: PETS-style probabilistic network (Chua et al. 2018, released code): initial log-variance
+# limits and the penalty that keeps them tight.
+PNN_INIT_MAX_LOGVAR = 0.5
+PNN_INIT_MIN_LOGVAR = -10.0
+PNN_LOGVAR_LIMIT_PENALTY = 0.01
+# rssm with DreamerV3's KL terms (Hafner et al. 2023): free nats per term and the weights of the
+# dynamics term KL(sg(q) || p) and the representation term KL(q || sg(p)). The dynamics weight 0.5
+# was taken from a summary; the paper's hyperparameter table gives 1. The exploration ran with 0.5
+# and was not rerun after the candidate was set aside.
+RSSM_DV3_FREE_NATS = 1.0
+RSSM_DV3_KL_DYN = 0.5
+RSSM_DV3_KL_REP = 0.1

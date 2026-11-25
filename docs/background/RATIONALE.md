@@ -31,12 +31,31 @@ simulator's true outcome, so they treat every model alike.
 
 ## Why `contact_wm`
 
-`mlp`, `gru` and `rssm` are general-purpose networks with the same inputs, trained on the same
+`mlp`, `gru` and `mlp-ms` are general-purpose networks with the same inputs, trained on the same
 data, and may learn nearly the same function; in evm-intervene's primary arm its three
 general-purpose models were within 0.6% of each other under intervention, and every difference
 came from its structured model, `conservation_wm`. `contact_wm` is this task's counterpart: the
 form of pushing physics is written into the model and only its numbers are learned, so it is the
 one main model whose design differs in kind.
+
+Unlike `conservation_wm`, `contact_wm` is expected to have the *lowest* observational loss, not
+the highest: this scene's mechanisms have the form of its law, and in Phase 0 smoke runs its
+L_obs was about a third of the general-purpose models'. So matching stops it early, not the
+others, and its G1 pairs are read asymmetrically (DESIGN.md, *The structured model*).
+
+## Why `mlp-ms` is the model with a different objective
+
+The issue asks for a model with a different objective as well as one with a different structure.
+The first draft used an RSSM trained on the ELBO (PlaNet). In Phase 0 smoke runs it learned
+slowest, ended with the highest L_obs, and so set V* for every pair, pulling every other model to
+an early checkpoint; it also changed several things at once (objective, sequence training, a
+stochastic latent, sampled predictions), so a gap could not be put down to the objective. Rescoring
+showed its gap was not sampling noise but a prior that did not learn what its latent encoded.
+DreamerV3's KL terms did not help, and a Gaussian negative log-likelihood network (PETS without
+the ensemble) fitted far worse. `mlp-ms` keeps `mlp`'s network and changes only the objective, to a
+4-step rollout loss: deterministic, as cheap as `mlp`, and in Phase 0 about 35% above `mlp` on
+L_obs, close enough that matching stays late for every model. Its contrast is milder than an
+ELBO model's, which DESIGN.md's *Limits* states.
 
 How to read a G1 pass:
 
@@ -151,7 +170,10 @@ usually chosen. So G1 compares at one shared level, V*, as evm-intervene does.
 
 **How V* is chosen.** evm-intervene matches every model to the 5-seed mean best L_obs of its
 structured model, `conservation_wm`, the model with the highest loss floor, which is compared at
-its own best checkpoint. This design uses the same idea for all four architectures: V* is 1.1 ×
+its own best checkpoint. This design does not fix the anchor on one model, because a fixed anchor
+works only if it is the worst model: matching stops runs early, so it can only reach losses above
+a model's best, and in this task the structured model is expected to be the best, not the worst.
+It uses the same idea for all four architectures: V* is 1.1 ×
 the largest architecture median of best L_obs. It is the lowest level every architecture can
 reach, so models are compared as fully trained as the worst one allows. The median keeps one bad
 seed from moving it. The 10% margin is needed because the worst architecture is screened too:

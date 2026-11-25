@@ -76,6 +76,19 @@ nothing about the hypothesis.
 | a fixed function of the history only | training loss near 0, except `contact_wm`, which ignores the history by design | the history not reaching the model |
 | a fixed smooth function of s_t and a_t | training loss near 0 | capacity and gradient flow |
 
+Two architectures cannot be trained on every target as worded above, and are tested on what
+their training can represent:
+
+- `contact_wm`: its pusher follows its lag model and its correction acts on the box only, from
+  geometric features. It is trained on zero change for the box's 7 numbers, pusher position change
+  = a_t × 0.1 s, and a fixed smooth function of its correction network's inputs on the box's
+  (Δx, Δy).
+- `mlp-ms`: it trains on rollouts, which need states that follow the target. It is trained on
+  made-up episodes built from each training episode's real first state and logged actions, in
+  which nothing moves, or only the pusher position moves by a_t × 0.1 s; their one-step changes
+  are the first two targets above. Its network and one-step wiring are `mlp`'s, which takes all
+  four targets; the rollout's feedback of predicted states is covered by a unit test (part 4).
+
 **3. Learning works**, on the real smoke data, recorded actions only:
 
 | Check | Pass condition |
@@ -84,7 +97,7 @@ nothing about the hypothesis.
 | Losses fall | L_obs decreases over checkpoints for every architecture and width |
 | Beats trivial baselines | every architecture beats `copy` and `constvel` on L_obs |
 | Matching runs | curves pass a V*-like level computed by DESIGN.md's rule from these runs; matching and exclusions pick the expected checkpoints |
-| Training budget | runs train the full number of updates at a constant learning rate, checkpoints follow DESIGN.md's schedule (every 100 updates up to 2,000, then every 1,000), the plateau criterion is reported, and runs continue past their best checkpoint |
+| Training budget | runs train the full number of updates at a constant learning rate, checkpoints follow DESIGN.md's schedule (every 10 updates up to 1,000, every 100 up to 2,000, then every 1,000), the plateau criterion is reported, and runs continue past their best checkpoint |
 | Reproducibility | the same seed gives the same loss curve on CPU |
 
 The smoke split is small (50 episodes); these checks test mechanics, not final performance.
@@ -94,9 +107,9 @@ The smoke split is small (50 episodes); these checks test mechanics, not final p
 | Model | Check |
 | --- | --- |
 | `contact_wm` | with parameters set by hand in the test only: pusher far away gives no contact; a push through the centre moves the box straight; an off-centre push turns it; a steep push slips. The smooth contact passes a gradient check |
-| `rssm` | KL term never negative; free-nats clipping works; ELBO terms add up; a fixed sampling seed gives identical predictions |
+| `mlp-ms` | the first step of its multi-step loss equals the shared loss; at the second step its input state is its own prediction and (s_t, a_t) has joined the history; the made-up episodes' one-step changes equal the made-up targets |
 | `mlp-shortcut` | shadow actions come from their own stream; the share of swapped inputs is p |
-| `blind` | its input contains no action |
+| `blind` | its input contains no a_t (the history keeps its past actions, as in DESIGN.md); its output does not change with a_t |
 
 ## Intervention-side checks, with stand-in models
 

@@ -62,7 +62,7 @@ placeholders.
       },
       "constvel": {}, "knn": {}
     },
-    "controls": {"blind": {}, "mlp-shortcut": {}, "mlp-twin": {}, "gru-twin": {}, "rssm-twin": {}, "contact_wm-twin": {}},
+    "controls": {"blind": {}, "mlp-shortcut": {}, "mlp-twin": {}, "gru-twin": {}, "mlp-ms-twin": {}, "contact_wm-twin": {}},
     "control_pairs": [
       {"role": "positive", "challenger": "mlp-shortcut", "reference": "mlp", "matched_within_5pct": true,
        "obs_val_rel_diff": 0.01, "separates": true,
@@ -86,7 +86,7 @@ placeholders.
         "matched_checkpoint_interventions": {"all": {}, "no_contact": {}, "graze": {}, "push": {}},
         "best_checkpoint_interventions": {"all": {}, "no_contact": {}, "graze": {}, "push": {}}
       },
-      "mlp": {}, "rssm": {}, "contact_wm": {}
+      "mlp": {}, "mlp-ms": {}, "contact_wm": {}
     },
     "pairwise_gate_g1": [
       {"challenger": "gru", "reference": "mlp", "matched_within_5pct": true, "obs_val_rel_diff": 0.02,
@@ -111,7 +111,7 @@ placeholders.
     },
     "gates": {"gate_g0_valid": true, "gate_g1_matched_separation_pass": true, "gate_g2_obs_rank_decoupled": true,
               "gate_positive_control_pass": true,
-              "gate_negative_controls": {"mlp": "clean", "gru": "clean", "rssm": "clean", "contact_wm": "clean"},
+              "gate_negative_controls": {"mlp": "clean", "gru": "clean", "mlp-ms": "clean", "contact_wm": "clean"},
               "gate_g1_passing_pairs": [["gru", "mlp"]],
               "gate_g1_reading": "pass", "gate_g2_reading": "decoupled"},
     "seed_checkpoints": [
