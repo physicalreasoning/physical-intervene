@@ -89,11 +89,15 @@ def load_checkpoint_for_scoring(path: Path, phase: str | None = None):
         raise LeakError(f"{path.name}: no metadata file, so the scorer cannot tell whether it is trained")
     assert_scorable(json.loads(side.read_text()), phase)
     import torch
+    from torch.torch_version import TorchVersion
 
     from physical_intervene.data import InputNorm
     from physical_intervene.models import build
 
-    ck = torch.load(path, map_location="cpu", weights_only=True)
+    # Training stores torch.__version__ (a TorchVersion, a str subclass) in the metadata; allow that
+    # one class and nothing else, so the safe loader still refuses any other object.
+    with torch.serialization.safe_globals([TorchVersion]):
+        ck = torch.load(path, map_location="cpu", weights_only=True)
     assert_scorable(ck["meta"], phase)
     meta = ck["meta"]
     model = build(
