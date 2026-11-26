@@ -90,7 +90,7 @@ def main() -> int:
     fz = check_frozen(2, checkpoints=True)
     if (
         S.load_interventions(P.data_path("test_states")).sha256
-        != json.loads((P.data_dir() / "manifest.json").read_text())["test_states"]["sha256"]
+        != json.loads((P.data_dir() / "manifest_test.json").read_text())["test_states"]["sha256"]
     ):
         raise SystemExit("test_states.npz differs from the one make_data.py recorded")
     rep = json.loads(open(a.replay).read())

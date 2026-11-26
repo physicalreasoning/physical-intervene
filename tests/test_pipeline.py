@@ -5,6 +5,7 @@ stop-at-plateau check, and nothing is scored on interventions."""
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -395,3 +396,24 @@ def test_result_without_positive_control_and_with_per_family_budgets() -> None:
         "primary": primary,
     }
     assert RF.check_conformance(result) == []
+
+
+def test_test_states_are_recorded_outside_the_manifest_freeze_2_hashes(tmp_path, monkeypatch) -> None:
+    # Freeze 2 hashes data/main/manifest.json; the test states come after it, so recording them must
+    # leave that file unchanged, and score.py reads their hash from manifest_test.json.
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("make_data", Path(seal.ROOT) / "scripts/make_data.py")
+    md = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(md)
+    monkeypatch.setattr(md.P, "data_dir", lambda dry_run=False: tmp_path)
+    for key in ("train", "test_states", "test_history"):
+        f = tmp_path / f"{key}.npz"
+        f.write_bytes(key.encode())
+        md.record(False, key, f, {})
+    frozen = json.loads((tmp_path / "manifest.json").read_text())
+    test = json.loads((tmp_path / "manifest_test.json").read_text())
+    assert set(frozen) == {"train"} and set(test) == {"test_states", "test_history"}
+    assert test["test_states"]["sha256"] == seal.sha256_file(tmp_path / "test_states.npz", tmp_path)
+    score_src = (Path(seal.ROOT) / "scripts/score.py").read_text()
+    assert '"manifest_test.json"' in score_src and '/ "manifest.json"' not in score_src

@@ -322,6 +322,22 @@ def test_checkpoint_records_what_the_scorer_needs(tmp_path) -> None:
     assert meta["data"]["train"]["file"] == "random" and "sha256" in meta["data"]["train"]
 
 
+def test_scorer_loads_a_checkpoint_written_by_training(tmp_path) -> None:
+    # The scorer loads with weights_only=True; a checkpoint from train() must pass that loader, not
+    # only a plain torch.load. A pilot confirmation run is the one trained model the scorer accepts
+    # between the freezes.
+    from physical_intervene.scoring import load_checkpoint_for_scoring
+
+    td = tiny_train_data()
+    cfg = short_cfg("mlp", updates=10)
+    cfg.checkpoint_every = [10]
+    cfg.pilot_confirmation = True
+    train(cfg, td, ckpt_dir=tmp_path, evaluate_val=False)
+    model, meta, _ = load_checkpoint_for_scoring(tmp_path / "u000010.pt", phase="training")
+    assert meta["trained"] is True and meta["pilot_confirmation"] is True
+    assert model.n_params() == meta["params"]
+
+
 def test_make_batch_zeroes_padded_actions() -> None:
     from physical_intervene.data import make_examples
 

@@ -8,6 +8,21 @@
     "src/physical_intervene/seal.py": "fb8e5758d9ba2ec4d0c01bfce13ca26fedaa1476b06099a1d390cac551003a44",
     "scripts/freeze.py": "63f548f4324277feaf6dba040684c3d9fca5d37c9a8dc6851e25635691675fee"
    }
+  },
+  {
+   "file": "frozen/amendments/2026-11-26-2.md",
+   "sha256": "1a9611d3402b1f199e70684dbe2d2dc98a1f3f259de053c35005ad81327fc138",
+   "code_sha256": {
+    "src/physical_intervene/scoring.py": "6883583ce6b17551caf2b5f47a8076bf57c53f9365b02a05d635ec7add36ebd1"
+   }
+  },
+  {
+   "file": "frozen/amendments/2026-11-26-3.md",
+   "sha256": "223d41d389275eaa0409086b4ac0bcc308692b94daed13d413fb402631edc200",
+   "code_sha256": {
+    "scripts/make_data.py": "0cec4704544bb6132b135e79402489a4b4fbd50ecdac4e338c1d407517a820ee",
+    "scripts/score.py": "38a5b1543279f60899b313a860cd83a39a9b7a7456cae252cbfa17143b1cdf83"
+   }
   }
  ]
 }
