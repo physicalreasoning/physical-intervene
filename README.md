@@ -70,21 +70,28 @@ design.
 | `scripts/score.py` | after freeze 2: scores every run on the test states and writes `results/intervention_results.json`; refuses if any recorded hash differs |
 | `src/physical_intervene/seal.py`, `pipeline.py` | the freeze records and their hash check; layout, seeds, the pilot rule and the rule for p |
 
-Order after Phase 0, each step a command:
+Order after Phase 0, each step a command. Steps marked *image* run in the pinned image (built
+with `docker build --platform linux/amd64 -t physical-intervene .`; its ID is recorded in
+`frozen/design.json`) on this checkout, so the code is the hashed and amended code and the
+environment is the image's:
 
 ```bash
-python scripts/make_data.py --split train          # and validation, pilot, pilot_states,
-                                                   # validation_policy_mean, pilot_states_policy_mean (in the image)
-python scripts/freeze.py --stage 1 --image physical-intervene
+img() { docker run --rm --platform linux/amd64 -v "$PWD:/repo" -w /repo -e PYTHONPATH=/repo/src physical-intervene "$@"; }
+img python scripts/make_data.py --split train       # image; then validation, pilot, pilot_states,
+                                                     # validation_policy_mean, pilot_states_policy_mean
+python scripts/freeze.py --stage 1 --image physical-intervene    # done: frozen/design.json
 python scripts/pilot.py grid && python scripts/pilot.py confirm
 python scripts/train_runs.py main && python scripts/train_runs.py shortcut
 python scripts/freeze.py --stage 2
-python scripts/make_data.py --split test_states    # in the image
-python scripts/replay_check.py --check data/main/test_states.npz > results/test_replay.json   # in the image
+img python scripts/make_data.py --split test_states                                        # image
+img python scripts/replay_check.py --check data/main/test_states.npz > results/test_replay.json   # image
 python scripts/score.py --replay results/test_replay.json
 ```
 
-Every step but the freezes takes `--dry-run`, which runs it on a few episodes in `data/dryrun/`.
+Amendments after freeze 1 are in `frozen/amendments/`, listed with their hashes in
+`frozen/amendments.json`; every run checks them.
+
+Every step except scoring takes `--dry-run`, which runs it on a few episodes in `data/dryrun/`.
 
 ## Setup
 

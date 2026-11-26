@@ -1,14 +1,16 @@
 # Intervention tests: shared reporting format
 
-**Status (2026-11-16): a draft for discussion
+**Status (2026-11-26): a draft for discussion
 ([physicalreasoning/forward#5](https://github.com/physicalreasoning/forward/issues/5)), not
-frozen.** It proposes one reporting format for every intervention test that answers forward#5,
+frozen, and not part of either test's freeze.** It proposes one reporting format for every intervention test that answers forward#5,
 so that their results read side by side. Two repos would use it:
 
 - [evm-intervene](https://github.com/physicalreasoning/evm-intervene): markets, Uniswap V3 with
   Aave liquidations. It has results, in `results/mainnet_intervention_results.json`.
-- physical-intervene (this repo): planar pushing in MuJoCo. It has a draft design and a
-  scaffold, no data or models yet.
+- physical-intervene (this repo): planar pushing in MuJoCo. Its design is frozen (freeze 1,
+  `frozen/design.json`) after a smoke test with stand-in models; no model has been trained on its
+  training split yet, so it has no results. Its design does not depend on this draft: its result
+  layout is defined by `src/physical_intervene/results_format.py`, which follows this format.
 
 Today the format is what evm-intervene's `scripts/run_experiment.py` writes. This draft writes
 that output down as the format, so both repos can point to one description. **evm-intervene's current output already conforms; it needs no change.** Where the
@@ -228,7 +230,7 @@ and at other shared loss levels), and `updates` and `met_plateau_criterion` per 
    `contact_wm`, is not an anchor), taking the
    lower-E_int member as the reference. Should the format allow both, as now, or fix one rule?
 3. **Matching target.** evm-intervene matches to the anchor's 5-seed mean best L_obs.
-   physical-intervene plans V\* = 1.1 × the largest per-architecture median best L_obs. Is the
+   physical-intervene uses V\* = 1.1 × the largest per-architecture median best L_obs. Is the
    target rule per test, as this draft says, or shared?
 4. **evm-intervene's design text and code.** Its `docs/DESIGN.md` describes G2 over best and
    intermediate matched-loss checkpoints; its code uses the 20 best checkpoints and reads the

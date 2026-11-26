@@ -482,8 +482,14 @@ def check_conformance(result: dict) -> list[str]:
             )
     if set(arm.get("models", {})) != set(MAIN):
         e.append(f"models: expected {MAIN}")
-    if set(arm.get("controls", {})) != {"blind", "mlp-shortcut", *TWINS.values()}:
-        e.append("controls: expected blind, mlp-shortcut and the four twins")
+    controls, base = set(arm.get("controls", {})), {"blind", *TWINS.values()}
+    pos = next((p for p in arm.get("control_pairs", []) if p.get("role") == "positive"), {})
+    shortcut_not_run = pos.get("tested") is False and "mlp-shortcut" not in controls
+    if not (controls == base | {"mlp-shortcut"} or (controls == base and shortcut_not_run)):
+        e.append(
+            "controls: expected blind, mlp-shortcut (absent only if the positive control was not run) "
+            "and the four twins"
+        )
     for i, p in enumerate(arm.get("pairwise_gate_g1", [])):
         w = f"pairwise_gate_g1[{i}]"
         _need(

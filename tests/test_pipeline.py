@@ -153,14 +153,41 @@ def test_amendments_must_be_listed(tmp_path) -> None:
     with pytest.raises(SystemExit, match="not listed"):
         seal.check_frozen(1, root)
     rel = f.relative_to(root).as_posix()
-    (root / seal.AMENDMENTS_RECORD).write_text(json.dumps({rel: seal.sha256_file(rel, root)}))
-    assert seal.check_frozen(1, root)["amendments"] == {rel: seal.sha256_file(rel, root)}
+    entry = {"file": rel, "sha256": seal.sha256_file(rel, root)}
+    (root / seal.AMENDMENTS_RECORD).write_text(json.dumps({"amendments": [entry]}))
+    assert seal.check_frozen(1, root)["amendments"] == [entry]
+    f.write_text("amendment, edited")
+    with pytest.raises(SystemExit, match="2027-01-01.md"):
+        seal.check_frozen(1, root)
+
+
+def test_a_hashed_file_may_change_only_with_an_amendment_recording_its_new_hash(tmp_path) -> None:
+    root = fake_repo(tmp_path)
+    code = "src/physical_intervene/a.py"
+    (root / code).write_text("x = 2")  # the fix
+    with pytest.raises(SystemExit, match="a.py"):
+        seal.check_frozen(1, root)
+    (root / seal.AMENDMENTS_DIR).mkdir()
+    f = root / seal.AMENDMENTS_DIR / "2027-01-01.md"
+    f.write_text("quotes x = 1 and x = 2, and why")
+    rel = f.relative_to(root).as_posix()
+    entry = {
+        "file": rel,
+        "sha256": seal.sha256_file(rel, root),
+        "code_sha256": {code: seal.sha256_file(code, root)},
+    }
+    (root / seal.AMENDMENTS_RECORD).write_text(json.dumps({"amendments": [entry]}))
+    seal.check_frozen(1, root)
+    (root / code).write_text("x = 3")  # a change the amendment does not record
+    with pytest.raises(SystemExit, match="a.py"):
+        seal.check_frozen(1, root)
 
 
 def test_stage2_checks_its_own_files_and_derives_the_test_seed(tmp_path) -> None:
     root = fake_repo(tmp_path)
     (root / "d.npz").write_bytes(b"data")
     models = {
+        "amendments_record_sha256": None,
         "design_record_sha256": seal.sha256_file(seal.DESIGN_RECORD, root),
         "data_sha256": {"d.npz": seal.sha256_file("d.npz", root)},
         "checkpoint_sha256": {},
@@ -169,6 +196,10 @@ def test_stage2_checks_its_own_files_and_derives_the_test_seed(tmp_path) -> None
     out = seal.check_frozen(2, root)
     assert out["test_seed_start"] == c.TEST_SEED_BASE + int(out["models_sha256"][:12], 16)
     assert out["test_seed_start"] > max(c.SEED_RANGE_PILOT)
+    (root / seal.AMENDMENTS_RECORD).write_text(json.dumps({"amendments": []}))  # after freeze 2
+    with pytest.raises(SystemExit, match="differs from freeze 2"):
+        seal.check_frozen(2, root)
+    (root / seal.AMENDMENTS_RECORD).unlink()
     (root / "d.npz").write_bytes(b"changed")
     with pytest.raises(SystemExit, match="d.npz"):
         seal.check_frozen(2, root)
@@ -186,8 +217,11 @@ def test_freeze1_code_covers_the_package_and_run_scripts() -> None:
 # Scoring saved runs (untrained networks only, so the no-leak guard allows them) --------------------
 
 
-def test_score_run_and_family_from_untrained_checkpoints(tmp_path) -> None:
+def test_score_run_and_family_from_untrained_checkpoints(tmp_path, monkeypatch) -> None:
     pytest.importorskip("torch")
+    # The phase comes from the repo's freeze records; fix it, so that after freeze 2 the guard does
+    # not re-hash data files a test machine does not have.
+    monkeypatch.setattr(seal, "current_phase", lambda root=seal.ROOT: "phase0")
     from physical_intervene import episodes as E
     from physical_intervene import scoring as S
     from physical_intervene import standins as SI
@@ -268,3 +302,96 @@ def test_locked_versions_lists_every_python_range() -> None:
     )
     assert [v["version"] for v in seal.locked_versions("numpy", text)] == ["2.4.6", "2.5.5"]
     assert seal.locked_versions("torch", text) == [{"version": "2.15.0", "python": ["any"]}]
+
+
+def test_result_without_positive_control_and_with_per_family_budgets() -> None:
+    """build_primary when no p fits (mlp-shortcut not run) and with each family's own budget: the
+    positive control is reported as not tested and does not pass, and the result conforms."""
+    from physical_intervene import gates as G
+    from physical_intervene import results_format as RF
+    from physical_intervene import scoring as S
+    from physical_intervene import standins as SI
+    from physical_intervene.data import TargetScaler
+
+    g = np.random.default_rng(0)
+    n, n_val = 6, 40
+    th = g.uniform(-np.pi, np.pi, n)
+    s = g.normal(size=(n, 11)) * 0.05
+    s[:, 2], s[:, 3] = np.cos(th), np.sin(th)
+    label = g.integers(0, 3, size=(n, 25))
+    label[:, 1] = 2  # every state has a push
+    iset = S.InterventionSet(
+        s=s,
+        actions=g.uniform(-0.15, 0.15, size=(n, 25, 2)),
+        y_true=g.normal(size=(n, 25, 3)) * 0.003,
+        label=label,
+        kinds=np.array([0] + [1] * 12 + [2] * 12),
+    )
+    val_s = np.repeat(s, n_val // n + 1, axis=0)[:n_val]
+    val_y = g.normal(size=(n_val, 3)) * 0.003
+    val_episode = np.arange(n_val) // 4
+    scaler = TargetScaler(np.zeros(3), np.array([0.003, 0.003, 0.003]))
+    ctx = SI.Context(scaler, val_y, val_episode, iset)
+    updates = [10, 20, 30]
+
+    def fam(name: str, n_seeds: int, key: int, width: str = "medium") -> G.Family:
+        def predict(i: int, k: int) -> S.Prediction:
+            r = np.random.default_rng([key, i, k])
+            scale = 0.003 * (1.0 / (k + 1)) * (1.5 if name == "blind" else 1.0)
+            return S.Prediction(
+                val=val_y + r.normal(size=val_y.shape) * scale,
+                interventions=iset.y_true + r.normal(size=iset.y_true.shape) * scale,
+            )
+
+        f = SI.family_from_predictor(name, list(range(n_seeds)), updates, predict, ctx, width)
+        f.meta["predict"] = predict
+        return f
+
+    names = [*c.MAIN_ARCHITECTURES, "blind", *(f"{a}-twin" for a in c.MAIN_ARCHITECTURES)]
+    fams = {nm: fam(nm, 12, i) for i, nm in enumerate(names)}
+    widths = {
+        w: {a: fam(a, 5, 100 + 10 * j + i, w) for i, a in enumerate(c.MAIN_ARCHITECTURES)}
+        for j, w in enumerate(("small", "large"))
+    }
+    copy = S.Prediction(val=np.zeros_like(val_y), interventions=np.zeros_like(iset.y_true))
+    lab = iset.label[:, 1:]
+    counts = {
+        "n_train_obs": 1,
+        "n_val_obs": n_val,
+        "n_interventions_total": int(lab.size),
+        "n_held_out_checkpoints": n,
+        "regime_counts": {st: int((lab == i).sum()) for i, st in enumerate(S.STRATA)},
+    }
+    budgets = {nm: 30 + i for i, nm in enumerate(names)}
+    primary = RF.build_primary(
+        fams,
+        widths,
+        scaler,
+        iset,
+        val_s,
+        val_y,
+        val_episode,
+        {"copy": copy, "constvel": None, "knn": None},
+        counts,
+        {"passed": True},
+        np.random.default_rng(1),
+        budgets,
+        reps=50,
+    )
+    pos = primary["control_pairs"][0]
+    assert pos["challenger"] == "mlp-shortcut" and pos["tested"] is False and pos["separates"] is False
+    assert primary["gates"]["gate_positive_control_pass"] is False
+    assert primary["gates"]["gate_g1_reading"] != "fail"  # a fail without the positive control is not read
+    assert "mlp-shortcut" not in primary["controls"]
+    assert primary["models"]["gru"]["updates"] == budgets["gru"]
+    assert primary["controls"]["blind"]["updates"] == budgets["blind"]
+    result = {
+        "format_version": RF.FORMAT_VERSION,
+        "benchmark": "test",
+        "device": "cpu",
+        "seeds": list(range(12)),
+        "updates": budgets,
+        "wall_seconds": 0.0,
+        "primary": primary,
+    }
+    assert RF.check_conformance(result) == []
