@@ -251,3 +251,20 @@ def test_stop_at_plateau_stops_at_the_first_checkpoint_meeting_it(monkeypatch) -
     assert r["stopped_at_plateau"] and r["updates_done"] == 20
     r = train(TrainConfig(**cfg), td)
     assert not r["stopped_at_plateau"] and r["updates_done"] == 200
+
+
+def test_locked_versions_lists_every_python_range() -> None:
+    lock = (seal.ROOT / "uv.lock").read_text()
+    numpy = seal.locked_versions("numpy", lock)
+    assert len(numpy) >= 1 and all(v["version"] and v["python"] for v in numpy)
+    pkg = '[[package]]\nname = "{}"\nversion = "{}"\n'
+    marker = "resolution-markers = [\"python_full_version {} '3.12'\"]\n"
+    text = (
+        pkg.format("numpy", "2.4.6")
+        + marker.format("<")
+        + pkg.format("numpy", "2.5.5")
+        + marker.format(">=")
+        + pkg.format("torch", "2.15.0")
+    )
+    assert [v["version"] for v in seal.locked_versions("numpy", text)] == ["2.4.6", "2.5.5"]
+    assert seal.locked_versions("torch", text) == [{"version": "2.15.0", "python": ["any"]}]
