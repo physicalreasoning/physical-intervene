@@ -11,3 +11,6 @@ dist/
 build/
 .pytest_cache/
 .ruff_cache/
+
+# Dry runs of the pipeline (scripts take --dry-run)
+results/dryrun/
