@@ -1,0 +1,13 @@
+{
+ "amendments": [
+  {
+   "file": "frozen/amendments/2026-11-26.md",
+   "sha256": "da09460056d452fd4691fe8186b313dcfaf8914975cffe03a435b84f18085d84",
+   "code_sha256": {
+    "src/physical_intervene/results_format.py": "9842d63f7729173deb30c05d925fa0c69c93a05f993c48fee81167965c272bb9",
+    "src/physical_intervene/seal.py": "fb8e5758d9ba2ec4d0c01bfce13ca26fedaa1476b06099a1d390cac551003a44",
+    "scripts/freeze.py": "63f548f4324277feaf6dba040684c3d9fca5d37c9a8dc6851e25635691675fee"
+   }
+  }
+ ]
+}

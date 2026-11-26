@@ -157,6 +157,9 @@ def stage2(a) -> dict:
         "freeze": 2,
         "frozen_at": dt.datetime.now(dt.UTC).isoformat(timespec="seconds"),
         "design_record_sha256": sha256_file(design_rec),
+        "amendments_record_sha256": (
+            sha256_file(seal.AMENDMENTS_RECORD) if (ROOT / seal.AMENDMENTS_RECORD).exists() else None
+        ),
         "settings": rec["settings"]["settings"],
         "pilot_confirmation": rec["confirmation"],
         "v_star": rec["p"]["v_star"],

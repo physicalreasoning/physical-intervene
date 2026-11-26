@@ -6,8 +6,10 @@ every run after freeze 1 makes first.
   values Phase 0 fixed. Written by `scripts/freeze.py --stage 1`.
 - Freeze 2, `frozen/models.json`: the pilot's settings, V*, p with D_obs and L_mlp, the sha256 of
   the data files and of every checkpoint. The test seed is derived from this file's sha256.
-- Amendments (DESIGN.md, Deviations after freeze 1): each file in `frozen/amendments/` must be listed
-  with its sha256 in `frozen/amendments.json`.
+- Amendments (DESIGN.md, Deviations after freeze 1): `frozen/amendments.json` lists each file in
+  `frozen/amendments/` with its sha256 and, if the amendment changes a hashed file, that file's new
+  sha256. A hashed file may differ from its freeze 1 hash only if an amendment records its new one.
+  Freeze 2 hashes `frozen/amendments.json` itself.
 
 `check_frozen` raises SystemExit naming anything that changed, as forward's `seal.check_frozen`.
 """
@@ -106,33 +108,49 @@ def _changed(files: dict[str, str], root: Path) -> list[str]:
     return out
 
 
-def check_amendments(root: Path = ROOT) -> dict:
-    """Every amendment file is listed in amendments.json with its sha256, and none has changed."""
+def check_amendments(root: Path = ROOT) -> list[dict]:
+    """The amendments in date order: each file in frozen/amendments/ is listed in amendments.json,
+    and none has changed. Each entry: {"file", "sha256", "code_sha256": {path: new sha256}}."""
     d = Path(root) / AMENDMENTS_DIR
     present = sorted(p.relative_to(root).as_posix() for p in d.glob("*")) if d.exists() else []
     rec_path = Path(root) / AMENDMENTS_RECORD
-    listed = json.loads(rec_path.read_text()) if rec_path.exists() else {}
-    problems = [f"{p} (not listed in {AMENDMENTS_RECORD})" for p in present if p not in listed]
-    problems += _changed(listed, root)
+    listed = json.loads(rec_path.read_text())["amendments"] if rec_path.exists() else []
+    names = [a["file"] for a in listed]
+    problems = [f"{p} (not listed in {AMENDMENTS_RECORD})" for p in present if p not in names]
+    problems += _changed({a["file"]: a["sha256"] for a in listed}, root)
     if problems:
         raise SystemExit(f"amendments changed or unlisted: {problems}")
     return listed
+
+
+def amended_code_sha256(design: dict, amendments: list[dict]) -> dict[str, str]:
+    """Freeze 1's code hashes, with each amendment's new hashes applied in order."""
+    code = dict(design["code_sha256"])
+    for a in amendments:
+        code.update(a.get("code_sha256", {}))
+    return code
 
 
 def check_frozen(stage: int, root: Path = ROOT, checkpoints: bool = False) -> dict:
     """Load the freeze records up to `stage` and refuse (SystemExit) if any recorded hash differs.
     Stage 2 also checks the data files; `checkpoints=True` re-hashes every checkpoint as well."""
     design = _load(DESIGN_RECORD, root)
-    files = {design["design_file"]: design["design_sha256"], **design["code_sha256"]}
+    amendments = check_amendments(root)
+    code = amended_code_sha256(design, amendments)
+    files = {design["design_file"]: design["design_sha256"], **code}
     files.update(design["phase0_record_sha256"])
     changed = _changed(files, root)
-    recorded_pkg = {p for p in design["code_sha256"] if p.startswith("src/")}
+    recorded_pkg = {p for p in code if p.startswith("src/")}
     changed += [f"{p} (added after freeze 1)" for p in package_files(root) if p not in recorded_pkg]
-    out = {"design": design, "amendments": check_amendments(root)}
+    out = {"design": design, "amendments": amendments}
     if stage >= 2:
         models = _load(MODELS_RECORD, root)
         if models["design_record_sha256"] != sha256_file(DESIGN_RECORD, root):
             changed.append(DESIGN_RECORD)
+        rec = Path(root) / AMENDMENTS_RECORD
+        now = sha256_file(AMENDMENTS_RECORD, root) if rec.exists() else None
+        if models.get("amendments_record_sha256") != now:
+            changed.append(f"{AMENDMENTS_RECORD} (differs from freeze 2)")
         changed += _changed(models["data_sha256"], root)
         if checkpoints:
             changed += _changed(models["checkpoint_sha256"], root)
