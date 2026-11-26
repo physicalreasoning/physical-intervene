@@ -1,0 +1,42 @@
+{
+ "what": "pilot confirmation of the positive control (DESIGN.md, Controls); controls only",
+ "pilot_v_star": 0.0643673455531816,
+ "pilot_v_star_set_by": "mlp-ms",
+ "pilot_medians_best_l_obs": {
+  "mlp": 0.0528566129123622,
+  "gru": 0.05411692188650422,
+  "mlp-ms": 0.05851576868471054,
+  "contact_wm": 0.008653662580605563
+ },
+ "pilot_l_mlp": 0.0528566129123622,
+ "pilot_d_obs": 0.06524958515025336,
+ "pilot_p": 0.4,
+ "note": "this reveals one absolute E_int of an mlp-like model (mlp-twin) and nothing about how mlp, gru, mlp-ms and contact_wm compare; the final p is computed afresh from the main runs",
+ "pilot_d_int": 0.5328241190112236,
+ "e_int_mlp_twin": 0.4607830634281305,
+ "e_int_mlp_shortcut": 0.5058356398357018,
+ "observed_rel_gap": 0.097773941759902,
+ "predicted_rel_gap": 0.18501517483637447,
+ "welch": {
+  "gap": 0.045052576407571265,
+  "ci_low": NaN,
+  "ci_high": NaN,
+  "rel_gap": 0.097773941759902,
+  "p_two_sided": 1.0,
+  "df": NaN,
+  "method": "welch_t_over_seeds"
+ },
+ "matched_l_obs": {
+  "mlp-shortcut": [
+   0.06761340618866647,
+   0.06738799542456292,
+   0.06784480351347352
+  ],
+  "mlp-twin": [
+   0.06453439271360273,
+   0.0646965958377305,
+   0.06387507555665091
+  ]
+ },
+ "result": "reported; the rule stays as written whatever this shows (DESIGN.md, Controls)"
+}
