@@ -82,6 +82,7 @@ img python scripts/make_data.py --split train       # image; then validation, pi
 python scripts/freeze.py --stage 1 --image physical-intervene    # done: frozen/design.json
 python scripts/pilot.py grid && python scripts/pilot.py confirm
 python scripts/train_runs.py main && python scripts/train_runs.py shortcut
+python scripts/rehearse_scoring.py   # freeze 2, test states and scoring in a scratch copy, untrained models
 python scripts/freeze.py --stage 2
 img python scripts/make_data.py --split test_states                                        # image
 img python scripts/replay_check.py --check data/main/test_states.npz > results/test_replay.json   # image

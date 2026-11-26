@@ -6,7 +6,8 @@
 All ground truth is generated in the pinned image (DESIGN.md, Environment): the script refuses to run
 outside linux/x86_64 unless --dry-run, which writes a few episodes to data/dryrun/ to check the
 pipeline. Writes data/main/<file>.npz and records its sha256, seeds and versions in
-data/main/manifest.json.
+data/main/manifest.json; the test states and their history, made after freeze 2, are recorded in
+data/main/manifest_test.json instead, so the manifest freeze 2 hashed stays unchanged.
 
 - train, validation, pilot: behaviour episodes with shadow actions, consecutive seeds from the
   start of each split's range.
@@ -135,8 +136,11 @@ def environment() -> dict:
     }
 
 
+TEST_KEYS = ("test_states", "test_history")  # made after freeze 2, which hashes manifest.json
+
+
 def record(dry_run: bool, key: str, path: Path, info: dict) -> None:
-    man = P.data_dir(dry_run) / "manifest.json"
+    man = P.data_dir(dry_run) / ("manifest_test.json" if key in TEST_KEYS else "manifest.json")
     d = json.loads(man.read_text()) if man.exists() else {}
     d[key] = {
         "file": path.name,
