@@ -1,0 +1,195 @@
+{
+ "freeze": 1,
+ "frozen_at": "2026-11-26T09:38:54+00:00",
+ "git_commit": "dc9594a075fde99fb0e6591d8ee52715e4d8ed04",
+ "design_file": "docs/DESIGN.md",
+ "design_sha256": "275f2f2cb42fd9b797e32181553690fc00c7ea8d540c74d8688cd26a02e74dda",
+ "code_sha256": {
+  "src/physical_intervene/__init__.py": "eccbb308814cc31734648564cdeb5cc35a502cd91ed73f8f5ad7476ca6a014f1",
+  "src/physical_intervene/assets/pushing.xml": "31a352109439f6cc7eb365577e26df8ddf32a50ade0ad827158e51a6adcee3bf",
+  "src/physical_intervene/baselines.py": "8bc420d1c7762953743be3d978926026784954e6840b63d71126802f591177db",
+  "src/physical_intervene/constants.py": "4d64ffed42911fea417cb9287186668e33261c3148aeba33fe028cbc05591d10",
+  "src/physical_intervene/data.py": "4eaa80b5a47c03bc04755e34bbe2ba65b2f64dd4652921839d0c049cc1fb516d",
+  "src/physical_intervene/env_checks.py": "2e9face2e543633cfb18c041e39cf1a8c826077dc0a11df5e6adb7ea634249b2",
+  "src/physical_intervene/episodes.py": "c8aba060fe6215f5160b295b038d050f3d198c47dedcbcc032ed78c191934488",
+  "src/physical_intervene/gates.py": "892ffe98e659321342afeabf16f0c1f1a0c4be0d4f20b477e65a3d44f0aa79d3",
+  "src/physical_intervene/interventions.py": "4b490db9c0c0821041194553b28e197466c062cb439866008a17f3912a824614",
+  "src/physical_intervene/metrics.py": "8d3efeb187ff02f11fa75e86581343234ea6b6fb3a5c75d72ea0ba68b5227b4e",
+  "src/physical_intervene/models/__init__.py": "07440d7734607315f07a9d8481c683268c2e7d5c490a1585d72d4bd0d9ad5d7b",
+  "src/physical_intervene/models/common.py": "f9ce588e2afa543950944de565dc8be5db8083a4590180192c5b5011b0bb018b",
+  "src/physical_intervene/models/contact_wm.py": "c399ce645e90c11c8eed17b18d149d95dec76f68cb34b09b0a83fbe84506d8af",
+  "src/physical_intervene/models/gru.py": "b7ec8be7423f0b43c6f065c703c3354c82489fbdc99180c72260436d83af1cd1",
+  "src/physical_intervene/models/mlp.py": "b4003d736726fec8dd3da7d934aaeda479f98a8c4cd1b09dec7de0ee5be0a785",
+  "src/physical_intervene/models/pnn.py": "9b66065871b77c9b5ae6694b0df5e0830a1b6eed610486dc3aff4bd6131f9cef",
+  "src/physical_intervene/models/rssm.py": "430d934c0026bd1abf954f39aed8951a2dbe0ec17e5c61deb831ebd1a55ab34f",
+  "src/physical_intervene/pipeline.py": "3de16811726e07214a6e46a8bb0c7a8098904629408a6cf32261e44b9590f4a0",
+  "src/physical_intervene/policy.py": "11833ddff5832a933d4b3e06bcf95a94fe93d8508b59b5c2a749019c391e7b3e",
+  "src/physical_intervene/results_format.py": "bbcbb03fcdb58168c935909dda2a408dac580d158b797d4852200577ad25d15f",
+  "src/physical_intervene/scoring.py": "7942c063ba4833c6d9d9ea0dcbedb2ead008a30c217f60e8b654719122eddfb7",
+  "src/physical_intervene/seal.py": "3cbf8eb6339bc3ae7441c040416a979eeef202d9682e940645cb0e64bf6c9d23",
+  "src/physical_intervene/sim.py": "ef63c4e046fa53db1e6192029dd6cda3acd2af1ff9f7c8930ea304bf3e53d918",
+  "src/physical_intervene/standins.py": "78b0bbcb891b84217cd11c7e688349c12d5a8e3773177d23324576eace7e5794",
+  "src/physical_intervene/train.py": "d3b2f472364233a31144c38a5ef6dd49ce05c3ac6b497186ad911f63dad3dc16",
+  "src/physical_intervene/training_checks.py": "37e054d8a9c669846460428bf5df0960db988cce9358744c20d93b4251b9b4fe",
+  "scripts/make_data.py": "a9f9a343fa9a3dfc68c24a5c88987f2f6c5cb0277208eb0ee2f3a8d946a191a1",
+  "scripts/pilot.py": "4d720c3973d1a216ac1bd336cfe3dd5922995a8219980806d51feea5a116d912",
+  "scripts/train_runs.py": "9000d422375b2b8d4dfee00b55f43bb61bff2a795738bc76acdddf9bc0bef845",
+  "scripts/score.py": "2f0b713a2233475022e02b0485a5afc239e8cf56671a710127b366c6e7eab982",
+  "scripts/freeze.py": "d1f2a5f0cff57b21f02835c94fa863164088b2920613181731e3e42d6857b8dc",
+  "scripts/replay_check.py": "73776af6a10db946035e50c02fd09a923de701a5d6a254d668eed0232d3cd50a",
+  "Dockerfile": "8430201e2aa0608b2a6a6e9ab82e0e7bd8009166eda126b5a77830cbf7cd611c",
+  "pyproject.toml": "57643bf73c70b7c052d4c6eb71cd188cfb47772146845e5e12634f12212d942c",
+  "uv.lock": "43781d136df4307696fb6e7fb421831f5b36f39dd70970032db2b345c3189580"
+ },
+ "phase0_record_sha256": {
+  "results/phase0_smoke.json": "56c9b57c41b16ed95dc6a9db4992e51000f3b90007647c03368c5b7c91e9aa29",
+  "results/phase0/REPORT_phase0.md": "34bb5dd6bc7e29a09b3e2241ce702fa185136881b1e4e86f0a11bc59f70e8bdd"
+ },
+ "versions": {
+  "python_host": "3.14.7",
+  "uv_lock": {
+   "torch": [
+    {
+     "version": "2.15.0",
+     "python": [
+      "any"
+     ]
+    }
+   ],
+   "mujoco": [
+    {
+     "version": "4.0.1",
+     "python": [
+      "any"
+     ]
+    }
+   ],
+   "numpy": [
+    {
+     "version": "2.4.6",
+     "python": [
+      "python_full_version < '3.12'"
+     ]
+    },
+    {
+     "version": "2.5.5",
+     "python": [
+      "python_full_version >= '3.12'"
+     ]
+    }
+   ],
+   "scipy": [
+    {
+     "version": "1.17.1",
+     "python": [
+      "python_full_version < '3.12'"
+     ]
+    },
+    {
+     "version": "1.18.1",
+     "python": [
+      "python_full_version >= '3.12'"
+     ]
+    }
+   ]
+  },
+  "note": "the image's own Python, MuJoCo and numpy are under image.inside; torch is not in the image (data generation and replay do not use it)"
+ },
+ "image": {
+  "name": "physical-intervene",
+  "id": "sha256:547fa5d041926f20b907bd990e748e0076543d2cee32598224d2db43b71233b1",
+  "repo_digests": [
+   "physical-intervene@sha256:547fa5d041926f20b907bd990e748e0076543d2cee32598224d2db43b71233b1"
+  ],
+  "inside": {
+   "python": "3.12.16",
+   "mujoco": "4.0.1",
+   "numpy": "2.5.5",
+   "machine": "x86_64"
+  }
+ },
+ "seeds": {
+  "train_episodes": {
+   "first": 1000000,
+   "n": 1000
+  },
+  "validation_episodes": {
+   "first": 2000000,
+   "n": 100
+  },
+  "pilot_episodes": {
+   "first": 4000000,
+   "n": 1000
+  },
+  "pilot_states_first_seed": 4100000,
+  "smoke": {
+   "attempt": 2,
+   "episodes_first": 3600000,
+   "pool_first": 3700000,
+   "states_first": 3800000
+  },
+  "main_training": [
+   11,
+   22,
+   33,
+   44,
+   55,
+   66,
+   77,
+   88,
+   99,
+   110,
+   121,
+   132,
+   143,
+   154,
+   165,
+   176,
+   187,
+   198,
+   209,
+   220
+  ],
+  "secondary_width_training": [
+   11,
+   22,
+   33,
+   44,
+   55
+  ],
+  "twin_training": [
+   231,
+   242,
+   253,
+   264,
+   275,
+   286,
+   297,
+   308,
+   319,
+   330,
+   341,
+   352,
+   363,
+   374,
+   385,
+   396,
+   407,
+   418,
+   429,
+   440
+  ],
+  "pilot_training": [
+   451,
+   462,
+   473
+  ],
+  "shadow_action_streams": "per episode seed: SeedSequence(seed, spawn_key=(k,)) with k = 5, 6, 7",
+  "test": "from 10000000 + the first 12 hex digits of sha256(frozen/models.json)"
+ },
+ "phase0_values": {
+  "d_push_m": 0.002,
+  "theta_push_deg": 1.0,
+  "epsilon_near": 0.05
+ }
+}
