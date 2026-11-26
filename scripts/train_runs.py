@@ -6,7 +6,9 @@
 main: every main run (4 architectures; 20 seeds at medium width, 5 at small and large), `blind` and
 the four twins, each with its architecture's pilot settings and budget (results/pilot/settings.json),
 on the training split, L_obs on the validation split, every scheduled checkpoint saved. Resumes:
-a run with a run.json is skipped.
+a run with a run.json is skipped. --drop-large REASON applies DESIGN.md's compute fallback (the
+pilot did not confirm the estimate): the large width is not trained, and the reason is recorded in
+results/training/large_width.json, which freeze 2 hashes.
 
 shortcut: after every medium-width main run has finished, V* from their best L_obs, D_obs from the
 validation split and the simulator (make_data.py validation_policy_mean), L_mlp, and p by the
@@ -54,7 +56,15 @@ def job(fam: str, width: str, seed: int, st: dict, dry_run: bool, **extra) -> di
 
 def main_runs(a) -> dict:
     st = settings(a.dry_run)
-    todo = [j for j in P.main_jobs() if a.family is None or j["family"] == a.family]
+    if a.drop_large:  # DESIGN.md, Compute: the stated fallback if the pilot does not confirm compute
+        rec = P.large_width_record(a.dry_run)
+        rec.parent.mkdir(parents=True, exist_ok=True)
+        rec.write_text(json.dumps({"dropped": True, "reason": a.drop_large}, indent=1))
+    todo = [
+        j
+        for j in P.main_jobs(P.large_width_dropped(a.dry_run))
+        if a.family is None or j["family"] == a.family
+    ]
     if a.dry_run:  # one seed per family and width is enough to check the wiring
         seen, keep = set(), []
         for j in todo:
@@ -115,6 +125,12 @@ def main() -> int:
     ap.add_argument("step", choices=["main", "shortcut"])
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--family", default=None, help="main only: train one family")
+    ap.add_argument(
+        "--drop-large",
+        default=None,
+        metavar="REASON",
+        help="main only: drop the large width (DESIGN.md, Compute), recording the reason",
+    )
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
     if not a.dry_run:

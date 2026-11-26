@@ -92,6 +92,9 @@ def test_job_list_and_settings_sources() -> None:
     assert P.settings_source("gru-twin") == "gru" and P.family_arch("gru-twin") == "gru"
     assert P.settings_source("blind") == "mlp" and P.settings_source("mlp-shortcut") == "mlp"
     assert P.family_arch("mlp-shortcut") == "mlp-shortcut"
+    dropped = P.main_jobs(drop_large=True)
+    assert len(dropped) == len(jobs) - len(c.MAIN_ARCHITECTURES) * len(c.SECONDARY_WIDTH_SEEDS)
+    assert not any(j["width"] == "large" for j in dropped)
 
 
 def test_split_seeds_are_disjoint_and_in_range() -> None:

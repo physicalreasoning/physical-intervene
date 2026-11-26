@@ -104,13 +104,23 @@ def run_name(family: str, width: str, seed: int, lr: float | None = None, bs: in
     return name
 
 
-def main_jobs() -> list[dict]:
-    """Every run trained before p is known: main runs at three widths, blind and the twins. The
-    `mlp-shortcut` runs come after (train_runs.py shortcut)."""
+def large_width_record(dry_run: bool = False) -> Path:
+    return results_dir("training", dry_run) / "large_width.json"
+
+
+def large_width_dropped(dry_run: bool = False) -> bool:
+    """The compute fallback (DESIGN.md, Compute): true once train_runs.py main --drop-large recorded it."""
+    f = large_width_record(dry_run)
+    return f.exists() and bool(json.loads(f.read_text())["dropped"])
+
+
+def main_jobs(drop_large: bool = False) -> list[dict]:
+    """Every run trained before p is known: main runs at three widths (two if the large width is
+    dropped), blind and the twins. The `mlp-shortcut` runs come after (train_runs.py shortcut)."""
     jobs = []
     for a in c.MAIN_ARCHITECTURES:
         jobs += [{"family": a, "width": "medium", "seed": s} for s in c.MAIN_SEEDS]
-        for w in ("small", "large"):
+        for w in ("small",) if drop_large else ("small", "large"):
             jobs += [{"family": a, "width": w, "seed": s} for s in c.SECONDARY_WIDTH_SEEDS]
     jobs += [{"family": "blind", "width": "medium", "seed": s} for s in c.MAIN_SEEDS]
     for a in c.MAIN_ARCHITECTURES:

@@ -56,7 +56,8 @@ def _score(run_dir: str) -> dict:
 def families(fz: dict, workers: int) -> tuple[dict, dict, dict]:
     rd = P.runs_dir("main")
     groups: dict[tuple[str, str], list[int]] = {}
-    for j in P.main_jobs():
+    drop_large = bool(fz["models"]["large_width_dropped"])
+    for j in P.main_jobs(drop_large):
         groups.setdefault((j["family"], j["width"]), []).append(j["seed"])
     if fz["models"]["p"] is not None:
         groups[("mlp-shortcut", "medium")] = list(c.MAIN_SEEDS)
@@ -68,7 +69,7 @@ def families(fz: dict, workers: int) -> tuple[dict, dict, dict]:
     for ((f, w), s), r in zip(order, scored, strict=True):
         by.setdefault((f, w), []).append((s, r))
     ctx = context()
-    fams, widths = {}, {"small": {}, "large": {}}
+    fams, widths = {}, ({"small": {}} if drop_large else {"small": {}, "large": {}})
     for (f, w), rows in by.items():
         fam = P.family_from_scored(f, w, [s for s, _ in rows], [r for _, r in rows], ctx["iset"], ctx["val"])
         if w == "medium":

@@ -121,7 +121,7 @@ def stage1(a) -> dict:
 
 
 def expected_runs(p: float | None) -> list[str]:
-    names = [P.run_name(j["family"], j["width"], j["seed"]) for j in P.main_jobs()]
+    names = [P.run_name(j["family"], j["width"], j["seed"]) for j in P.main_jobs(P.large_width_dropped())]
     if p is not None:
         names += [P.run_name("mlp-shortcut", "medium", s) for s in c.MAIN_SEEDS]
     return names
@@ -136,6 +136,8 @@ def stage2(a) -> dict:
         "confirmation": pilot / "confirmation.json",
         "p": training / "p.json",
     }
+    if P.large_width_record(a.dry_run).exists():
+        files["large_width"] = P.large_width_record(a.dry_run)
     rec = {k: json.loads(f.read_text()) for k, f in files.items()}
     rd = P.runs_dir("main", a.dry_run)
     present = sorted(d.name for d in rd.iterdir() if (d / "run.json").exists())
@@ -165,6 +167,7 @@ def stage2(a) -> dict:
         "p": rec["p"]["p"],
         "d_obs": rec["p"]["d_obs"],
         "l_mlp": rec["p"]["l_mlp"],
+        "large_width_dropped": P.large_width_dropped(a.dry_run),
         "n_runs": len(present),
         "data_sha256": data,
         "checkpoint_sha256": ckpt,
