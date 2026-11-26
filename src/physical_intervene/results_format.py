@@ -211,11 +211,14 @@ def build_primary(
     counts: dict,
     g0_replay: dict,
     rng: np.random.Generator,
-    updates: int,
+    updates: int | dict[str, int],
     reps: int = c.BOOTSTRAP_REPLICATES,
 ) -> dict:
     """The primary arm. `fams` holds the medium-width main families and the controls by name
-    (`blind`, `mlp-shortcut`, `<arch>-twin`); `widths` the small and large main families, for G2."""
+    (`blind`, `mlp-shortcut`, `<arch>-twin`); `widths` the small and large main families, for G2.
+    `updates` is one budget for all, or each family's by name. Without `mlp-shortcut` in `fams` the
+    positive control was not run (no p fits, DESIGN.md Controls) and does not pass."""
+    upd = (lambda n: updates) if isinstance(updates, int) else (lambda n: updates[n])  # noqa: E731
     v_star, setter = G.v_star_of([fams[a] for a in MAIN])
     copy_l = scaler.std_mse(baselines["copy"].val, val_y)
 
@@ -224,7 +227,16 @@ def build_primary(
     for a in MAIN:
         p, st = G.twin_pair(fams, a, TWINS[a], v_star, rng, reps)
         twin_pairs[a], twin_status[a] = p, st
-    pos = G.positive_pair(fams, "mlp", "mlp-shortcut", v_star, rng, reps)
+    if "mlp-shortcut" in fams:
+        pos = G.positive_pair(fams, "mlp", "mlp-shortcut", v_star, rng, reps)
+    else:
+        pos = {
+            "tested": False,
+            "challenger": "mlp-shortcut",
+            "reference": "mlp",
+            "not_tested_because": ["mlp-shortcut not run: no p in the grid fits V*"],
+            "separates": False,
+        }
     positive_pass = bool(pos["separates"])
 
     g1 = G.run_g1(fams, MAIN, v_star, rng, reps)
@@ -285,12 +297,12 @@ def build_primary(
 
     models = {
         a: model_block(
-            fams[a], g1["matches"][a], scaler, iset, val_s, val_y, val_episode, copy_l, rng, updates
+            fams[a], g1["matches"][a], scaler, iset, val_s, val_y, val_episode, copy_l, rng, upd(a)
         )
         for a in MAIN
     }
     controls = {}
-    for name in ["blind", "mlp-shortcut", *TWINS.values()]:
+    for name in [n for n in ["blind", "mlp-shortcut", *TWINS.values()] if n in fams]:
         controls[name] = model_block(
             fams[name],
             G.match(fams[name], v_star),
@@ -301,7 +313,7 @@ def build_primary(
             val_episode,
             copy_l,
             rng,
-            updates,
+            upd(name),
         )
     control_pairs = [pair_entry(pos) | {"role": "positive", "separates": positive_pass}]
     for a in MAIN:
