@@ -23,7 +23,6 @@ import argparse
 import datetime as dt
 import json
 import platform
-import re
 import subprocess
 import sys
 
@@ -38,11 +37,9 @@ def git(*args: str) -> str:
     return subprocess.run(["git", *args], cwd=ROOT, check=True, capture_output=True, text=True).stdout.strip()
 
 
-def locked_version(name: str) -> str | None:
-    m = re.search(
-        rf'\[\[package\]\]\nname = "{re.escape(name)}"\nversion = "([^"]+)"', (ROOT / "uv.lock").read_text()
-    )
-    return m.group(1) if m else None
+def locked(*names: str) -> dict:
+    text = (ROOT / "uv.lock").read_text()
+    return {n: seal.locked_versions(n, text) for n in names}
 
 
 def image_info(image: str) -> dict:
@@ -106,9 +103,9 @@ def stage1(a) -> dict:
         "phase0_record_sha256": {p: sha256_file(p) for p in seal.PHASE0_RECORD},
         "versions": {
             "python_host": platform.python_version(),
-            "torch_locked": locked_version("torch"),
-            "mujoco_locked": locked_version("mujoco"),
-            "numpy_locked": locked_version("numpy"),
+            "uv_lock": locked("torch", "mujoco", "numpy", "scipy"),
+            "note": "the image's own Python, MuJoCo and numpy are under image.inside; torch is not in "
+            "the image (data generation and replay do not use it)",
         },
         "image": image_info(a.image) if a.image else None,
         "seeds": seeds(),

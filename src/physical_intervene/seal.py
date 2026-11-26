@@ -62,6 +62,18 @@ def freeze1_code(root: Path = ROOT) -> list[str]:
     return [*package_files(root), *FREEZE1_SCRIPTS, *FREEZE1_ENV]
 
 
+def locked_versions(name: str, lock_text: str) -> list[dict]:
+    """Every version of a package pinned in uv.lock, with the Python versions it applies to (uv
+    pins one version per Python range when they differ, e.g. numpy for 3.11 and for 3.12+)."""
+    import tomllib
+
+    return [
+        {"version": p["version"], "python": p.get("resolution-markers", ["any"])}
+        for p in tomllib.loads(lock_text).get("package", [])
+        if p.get("name") == name
+    ]
+
+
 def current_phase(root: Path = ROOT) -> str:
     """phase0 before freeze 1; training between the freezes; scoring after freeze 2."""
     if (Path(root) / MODELS_RECORD).exists():
