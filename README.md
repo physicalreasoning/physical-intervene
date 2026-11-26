@@ -5,7 +5,8 @@ An intervention test for learned world models, the physical counterpart of
 [physicalreasoning/forward#5](https://github.com/physicalreasoning/forward/issues/5): do world
 models with matched validation loss predict the same outcome under an action they were not shown?
 
-**Status: design is a draft for the smoke test, not frozen.** No data has been generated and no model trained.
+**Status: design frozen at freeze 1** (`frozen/design.json`, posted on forward#5). Phase 0, the
+smoke test, is done (`results/phase0/`); no model has been trained on the training split.
 
 ## Task 1: planar pushing
 
@@ -62,10 +63,28 @@ design.
 | `scripts/phase0_intervention.py` | Phase 0: the intervention-side checks with stand-ins only (scorer, gates, control readings, repeated pairs, format check); needs the `models` extra |
 | `scripts/phase0_seed_interval.py` | Phase 0 exploration: G1's false-alarm rate and power at large seed spreads and at the test set's size, for the design's interval and two wider ones (stand-ins only) |
 | `scripts/phase0_record.py` | Phase 0: writes the record, `results/phase0_smoke.json`, from the three milestones' records |
+| `scripts/make_data.py` | after Phase 0: training, validation and pilot data, pilot and test states, and the policy means for D_obs and D_int; simulator only, in the pinned image |
+| `scripts/pilot.py` | after freeze 1: the pilot rule's grid (settings and budget) and the positive control's confirmation |
+| `scripts/train_runs.py` | after the pilot: the main runs and controls, then p and the `mlp-shortcut` runs |
+| `scripts/freeze.py` | writes `frozen/design.json` (freeze 1) and `frozen/models.json` (freeze 2) |
+| `scripts/score.py` | after freeze 2: scores every run on the test states and writes `results/intervention_results.json`; refuses if any recorded hash differs |
+| `src/physical_intervene/seal.py`, `pipeline.py` | the freeze records and their hash check; layout, seeds, the pilot rule and the rule for p |
 
-Planned, following evm-intervene: `src/physical_intervene/` simulator, models, baselines and
-metrics; `scripts/` for data generation, training, scoring and freezing; `frozen/` for the
-freeze records; `results/` for the result JSON; `docs/REPRODUCE.md`.
+Order after Phase 0, each step a command:
+
+```bash
+python scripts/make_data.py --split train          # and validation, pilot, pilot_states,
+                                                   # validation_policy_mean, pilot_states_policy_mean (in the image)
+python scripts/freeze.py --stage 1 --image physical-intervene
+python scripts/pilot.py grid && python scripts/pilot.py confirm
+python scripts/train_runs.py main && python scripts/train_runs.py shortcut
+python scripts/freeze.py --stage 2
+python scripts/make_data.py --split test_states    # in the image
+python scripts/replay_check.py --check data/main/test_states.npz > results/test_replay.json   # in the image
+python scripts/score.py --replay results/test_replay.json
+```
+
+Every step but the freezes takes `--dry-run`, which runs it on a few episodes in `data/dryrun/`.
 
 ## Setup
 

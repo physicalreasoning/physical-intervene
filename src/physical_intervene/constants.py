@@ -3,7 +3,7 @@
 Values here are fixed at freeze 1. Where a value is also stated in DESIGN.md, the two must agree.
 Items the design marks *set by pilot* (optimiser, learning rate, batch size, number of
 updates) and p for mlp-shortcut (computed after the main runs) are not here; they are recorded in
-frozen/models.json at freeze 2.
+frozen/models.json at freeze 2. The pilot rule that chooses them (grids, seeds, cap) is here.
 Sources for the defaults are in the project notes, not in this file.
 """
 
@@ -41,7 +41,7 @@ N_TRAIN_EPISODES = 1_000
 N_VAL_EPISODES = 100
 N_SMOKE_EPISODES = 50
 N_SMOKE_STATES = 200
-N_PILOT_EPISODES = 200
+N_PILOT_EPISODES = 1_000  # the training split's size, so the pilot's budget sees as much data
 N_PILOT_STATES = 200
 N_TEST_STATES = 1_000
 
@@ -141,6 +141,20 @@ EVM_SEEDS: tuple[int, ...] = (11, 22, 33, 44, 55)
 SECONDARY_WIDTH_SEEDS: tuple[int, ...] = EVM_SEEDS
 TWIN_SEEDS: tuple[int, ...] = tuple(range(231, 441, 11))  # 231, 242, ..., 440
 
+# Pilot rule (DESIGN.md, Models, Pilot rule): per main architecture at medium width, every setting
+# in the grid is trained on each pilot seed until the plateau criterion or PILOT_MAX_UPDATES. The
+# lowest median best L_obs wins; within PILOT_TIE_REL_TOL of it, the smaller learning rate, then the
+# smaller batch size. If the lowest has an edge learning rate, the grid is extended once by the
+# matching PILOT_LR_EDGE_EXTENSION value. Budget: BUDGET_FACTOR_OVER_PLATEAU x the largest plateau
+# point of its seeds.
+PILOT_OPTIMISER = "adam"
+PILOT_LR_GRID: tuple[float, ...] = (1e-4, 3e-4, 1e-3, 3e-3)
+PILOT_BATCH_GRID: tuple[int, ...] = (256, 1_024)
+PILOT_TRAINING_SEEDS: tuple[int, ...] = (451, 462, 473)
+PILOT_MAX_UPDATES = 100_000
+PILOT_TIE_REL_TOL = 0.05  # Phase 0: seeds of one setting differed by 1% to 5% in L_obs
+PILOT_LR_EDGE_EXTENSION: tuple[float, float] = (3e-5, 1e-2)  # below the smallest, above the largest
+
 # Target scaling: std floors for (dx m, dy m, dtheta rad).
 TARGET_STD_FLOORS = (1e-4, 1e-4, 1e-3)
 
@@ -194,6 +208,12 @@ SEED_RANGE_TRAIN = (1_000_000, 2_000_000)
 SEED_RANGE_VALIDATION = (2_000_000, 3_000_000)
 SEED_RANGE_SMOKE = (3_000_000, 4_000_000)
 SEED_RANGE_PILOT = (4_000_000, 5_000_000)
+# Inside the pilot range: the 1,000 pilot episodes start at its first seed, the 200 pilot test-like
+# states (one fresh episode each, skipped seeds included) at this offset.
+PILOT_STATES_OFFSET = 100_000
+# Test states (DESIGN.md, Splits): consecutive seeds from TEST_SEED_BASE + (the first 12 hex digits
+# of the sha256 of frozen/models.json, as an integer), above every other range by construction.
+TEST_SEED_BASE = 10_000_000
 # Inside the smoke range: Phase 0 attempt k (one per epsilon_near ladder value) starts at
 # SEED_RANGE_SMOKE[0] + k * SMOKE_ATTEMPT_STRIDE, so a rerun uses new smoke seeds. Attempt 0 ran at
 # epsilon_near 0.2; attempt 1 at 0.05; attempt 2 at 0.05 with the push label against the no-contact
@@ -215,9 +235,8 @@ FEASIBILITY_POLICY_DRAWS = 100
 # *set by pilot* items stay out of this file; Phase 0 uses placeholders recorded in its own record.
 # ---------------------------------------------------------------------------------------------
 
-# Phase flag (SMOKE_TEST.md, No-leak rule): while it is "phase0", the scoring entry point refuses
-# any trained checkpoint. Every checkpoint records the phase it was trained in.
-PHASE = "phase0"
+# The phase is read from the freeze records, not set here (seal.current_phase): "phase0" before
+# freeze 1, "training" between the freezes, "scoring" after freeze 2. Every checkpoint records it.
 
 # History before step HISTORY_LEN: missing (state, action) pairs are padded with copies of s_0 and
 # a zero action, and a mask input (1 real, 0 padding) marks them. The same for every model.

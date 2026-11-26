@@ -1,6 +1,7 @@
 # physical-intervene: Phase 0 smoke test
 
-**Status: plan, not run.** Phase 0 runs before freeze 1 of [DESIGN.md](DESIGN.md). It is not
+**Status: run; every check passes** (record: `results/phase0_smoke.json` and
+`results/phase0/REPORT_phase0.md`). Phase 0 runs before freeze 1 of [DESIGN.md](DESIGN.md). It is not
 part of the pre-registered analysis and is not frozen as a plan: its findings may change both
 this file and the design until freeze 1. Its record (`results/phase0_smoke.json` and the report)
 is hashed in freeze 1.

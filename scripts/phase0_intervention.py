@@ -180,7 +180,7 @@ def check_no_leak() -> dict:
         except S.LeakError:
             out[name] = "refused"
     try:
-        S.assert_scorable({"trained": True}, phase="main")
+        S.assert_scorable({"trained": True}, phase="scoring")
         out["trained_true_after_phase0"] = "accepted"
     except S.LeakError:
         out["trained_true_after_phase0"] = "refused"
@@ -213,7 +213,7 @@ def check_no_leak() -> dict:
         "file_without_metadata": "refused",
     }
     return {
-        "phase": c.PHASE,
+        "phase": "phase0",
         "results": out,
         "expected": expected,
         "pass_condition": "trained or unlabelled metadata refused in phase0; trained: false accepted",
@@ -886,7 +886,7 @@ def standin_run(env: dict, reps: int) -> tuple[dict, dict, dict]:
         "seeds": list(c.STANDIN_SEEDS),
         "updates": PLACEHOLDER_UPDATES,
         "wall_seconds": time.perf_counter() - t0,
-        "phase": c.PHASE,
+        "phase": "phase0",
         "stand_in_run": "Phase 0 stand-ins only (SMOKE_TEST.md, No-leak rule); "
         "no trained model is in this file. "
         "Model names are slots filled by stand-ins (see lineup); knn is not scored in Phase 0",
@@ -1023,7 +1023,7 @@ def main() -> int:
     record = {
         "milestone": 3,
         "attempt": c.MILESTONE3_ATTEMPT,
-        "phase": c.PHASE,
+        "phase": "phase0",
         "quick": args.quick,
         "models_scored_on_interventions": "stand-ins (oracle, copy, constvel as a fixed rule, "
         "noisy families) and "

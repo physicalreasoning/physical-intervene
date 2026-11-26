@@ -80,10 +80,10 @@ Given the state and history, a'_t has the same distribution as a_t,
 *fail* becomes unreadable. Its extra loss comes from the replaced actions, about p² · D_obs, and
 does not shrink with more data.
 
-**Why not set p in the pilot.** The pilot trains on 200 episodes and the main runs on 1,000. The
-main models therefore reach a lower L_obs, and the final V* is very likely lower than the pilot's.
-A p that just reaches the pilot's V* would then be too large for the final one, by an amount
-nobody can know in advance. A safety margin (for example aiming at 0.9 × the pilot's V*) would be
+**Why not set p in the pilot.** The pilot trains on as many episodes as the main runs, but other
+episodes, other seeds and only 3 seeds per setting, against 20 for the main runs. Its V* therefore
+differs from the final V* by an amount nobody can know in advance, in either direction. A p that
+just reaches the pilot's V* could then be too large for the final one. A safety margin (for example aiming at 0.9 × the pilot's V*) would be
 a guess at that amount.
 
 **The rule.** After the medium-width main runs, p is the largest grid value with

@@ -13,6 +13,7 @@ from physical_intervene import constants as c
 from physical_intervene import gates as G
 from physical_intervene import results_format as RF
 from physical_intervene import scoring as S
+from physical_intervene import seal
 from physical_intervene import standins as SI
 from physical_intervene.data import TargetScaler
 
@@ -36,11 +37,25 @@ def test_scorer_refuses_trained_or_unlabelled_in_phase0(meta: dict) -> None:
 def test_scorer_accepts_untrained_and_standins() -> None:
     S.assert_scorable({"trained": False}, phase="phase0")
     S.assert_scorable(SI.STANDIN_META, phase="phase0")
-    S.assert_scorable({"trained": True}, phase="main")  # after Phase 0 the guard steps aside
+    S.assert_scorable({"trained": True}, phase="scoring")  # after freeze 2 the guard steps aside
 
 
-def test_phase_flag_is_phase0() -> None:
-    assert c.PHASE == "phase0"
+def test_phase_follows_the_freeze_records(tmp_path) -> None:
+    assert seal.current_phase(tmp_path) == "phase0"
+    (tmp_path / "frozen").mkdir()
+    (tmp_path / seal.DESIGN_RECORD).write_text("{}")
+    assert seal.current_phase(tmp_path) == "training"
+    (tmp_path / seal.MODELS_RECORD).write_text("{}")
+    assert seal.current_phase(tmp_path) == "scoring"
+
+
+def test_between_freezes_only_pilot_confirmation_runs_are_scored() -> None:
+    S.assert_scorable({"trained": True, "pilot_confirmation": True}, phase="training")
+    S.assert_scorable({"trained": False}, phase="training")
+    with pytest.raises(S.LeakError):
+        S.assert_scorable({"trained": True, "pilot_confirmation": False}, phase="training")
+    with pytest.raises(S.LeakError):
+        S.assert_scorable({"trained": True, "pilot_confirmation": True}, phase="phase0")
 
 
 def test_entry_point_refuses_before_reading_weights(tmp_path) -> None:

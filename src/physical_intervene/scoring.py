@@ -6,9 +6,13 @@ blocks by stratum (no contact, graze, push, all contact, all), seed averaging, t
 mm, the angle error in degrees, and the logged-action reference (action 0 at each state, which is
 never an intervention and never enters E_int).
 
-**No-leak guard** (SMOKE_TEST.md, *No-leak rule*). While constants.PHASE is "phase0", the scoring
-entry point refuses any model whose metadata does not say `trained: false`. Metadata that lacks
-the key is refused too. The guard reads a checkpoint's metadata before its weights are loaded.
+**No-leak guard** (SMOKE_TEST.md, *No-leak rule*; DESIGN.md, *Seal*). The phase comes from the freeze
+records (seal.current_phase). In Phase 0 the scorer refuses any model whose metadata does not say
+`trained: false`; metadata that lacks the key is refused too. Between the freezes it also accepts
+the pilot's positive-control confirmation runs (`pilot_confirmation: true`) and nothing else
+trained. After freeze 2 it accepts trained models, and loading a checkpoint first checks every
+recorded hash (seal.check_frozen). The guard reads a checkpoint's metadata before its weights are
+loaded.
 """
 
 from __future__ import annotations
@@ -35,23 +39,50 @@ class LeakError(RuntimeError):
     """Raised when Phase 0 would score a trained model on interventions."""
 
 
-def assert_scorable(meta: dict, phase: str = c.PHASE) -> None:
-    """Refuse a model on interventions unless the phase allows it. In Phase 0 only models whose
-    metadata says `trained: false` (stand-ins and untrained networks) may be scored."""
-    if phase != "phase0":
+def _phase(phase: str | None) -> str:
+    if phase is None:
+        from physical_intervene.seal import current_phase
+
+        return current_phase()
+    return phase
+
+
+def assert_scorable(meta: dict, phase: str | None = None) -> None:
+    """Refuse a model on interventions unless the phase allows it (see the module's docstring)."""
+    phase = _phase(phase)
+    if phase not in ("phase0", "training", "scoring"):
+        raise ValueError(f"unknown phase {phase!r}")
+    if phase == "scoring" or meta.get("trained") is False:
         return
-    if meta.get("trained") is not False:
-        raise LeakError(
-            f"phase is {phase!r}: the scorer refuses any trained model on interventions "
-            f"(metadata trained={meta.get('trained', 'missing')!r}, "
-            f"architecture={meta.get('architecture', '?')}, seed={meta.get('seed', '?')})"
-        )
+    if phase == "training" and meta.get("pilot_confirmation") is True:
+        return
+    raise LeakError(
+        f"phase is {phase!r}: the scorer refuses this trained model on interventions "
+        f"(metadata trained={meta.get('trained', 'missing')!r}, "
+        f"pilot_confirmation={meta.get('pilot_confirmation', 'missing')!r}, "
+        f"architecture={meta.get('architecture', '?')}, seed={meta.get('seed', '?')})"
+    )
 
 
-def load_checkpoint_for_scoring(path: Path, phase: str = c.PHASE):
+_CHECKED: set = set()
+
+
+def require_frozen_for_scoring(phase: str) -> None:
+    """After freeze 2, every recorded hash must match before any trained model is scored (once per
+    process)."""
+    if phase == "scoring" and "scoring" not in _CHECKED:
+        from physical_intervene.seal import check_frozen
+
+        check_frozen(2)
+        _CHECKED.add("scoring")
+
+
+def load_checkpoint_for_scoring(path: Path, phase: str | None = None):
     """The scoring entry point for saved models: (model, metadata, state-change scaler). The sidecar
     metadata (.json) is checked first, then the metadata stored in the checkpoint itself, before any
     weight is loaded into a model."""
+    phase = _phase(phase)
+    require_frozen_for_scoring(phase)
     path = Path(path)
     side = path.with_suffix(".json")
     if not side.exists():
@@ -170,11 +201,13 @@ class Prediction:
 
 
 def predict_model(
-    model, dscaler: TargetScaler, val: Examples, iset: InterventionSet, meta: dict, phase: str = c.PHASE
+    model, dscaler: TargetScaler, val: Examples, iset: InterventionSet, meta: dict, phase: str | None = None
 ) -> Prediction:
     """A learned model's predictions (dscaler: its state-change scaler); refuses a trained model in
     Phase 0 (the no-leak guard)."""
+    phase = _phase(phase)
     assert_scorable(meta, phase)
+    require_frozen_for_scoring(phase)
     from physical_intervene.models import make_batch
     from physical_intervene.train import predict_delta
 

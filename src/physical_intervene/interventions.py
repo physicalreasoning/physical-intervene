@@ -121,26 +121,37 @@ def run_actions(sim: Sim, state: np.ndarray, actions: np.ndarray) -> dict:
     }
 
 
+def state_row(sim: Sim, seed: int, epsilon_near: float = policy.EPSILON_NEAR) -> dict | None:
+    """The test-like state of one seed with its 25 actions (logged first) run and labelled, or None
+    if the episode has no test-like state."""
+    s = select_state(sim, seed, epsilon_near)
+    if s is None:
+        return None
+    actions = np.concatenate([s["logged_action"][None], draw_interventions(seed, s["obs"])], axis=0)
+    s.update(actions=actions, **run_actions(sim, s["state"], actions))
+    s["log_density"] = np.array([policy.log_density(a, s["obs"], s["goal"], epsilon_near) for a in actions])
+    return s
+
+
+def stack_states(rows: list[dict], skipped: list[int]) -> dict:
+    out = {k: np.array([r[k] for r in rows]) for k in rows[0]}
+    out["skipped_seeds"] = np.array(skipped, dtype=np.int64)
+    out["kinds"] = KINDS
+    return out
+
+
 def make_states(sim: Sim, seeds_from: int, n_states: int, epsilon_near: float = policy.EPSILON_NEAR) -> dict:
     """n test-like states from consecutive seeds starting at `seeds_from`, skipping episodes with none,
     each with its 25 actions (logged first) run and labelled."""
     rows, skipped, seed = [], [], seeds_from
     while len(rows) < n_states:
-        s = select_state(sim, seed, epsilon_near)
+        s = state_row(sim, seed, epsilon_near)
         if s is None:
             skipped.append(seed)
         else:
-            actions = np.concatenate([s["logged_action"][None], draw_interventions(seed, s["obs"])], axis=0)
-            s.update(actions=actions, **run_actions(sim, s["state"], actions))
-            s["log_density"] = np.array(
-                [policy.log_density(a, s["obs"], s["goal"], epsilon_near) for a in actions]
-            )
             rows.append(s)
         seed += 1
-    out = {k: np.array([r[k] for r in rows]) for k in rows[0]}
-    out["skipped_seeds"] = np.array(skipped, dtype=np.int64)
-    out["kinds"] = KINDS
-    return out
+    return stack_states(rows, skipped)
 
 
 def state_histories(sim: Sim, states: dict, epsilon_near: float = policy.EPSILON_NEAR) -> dict:
