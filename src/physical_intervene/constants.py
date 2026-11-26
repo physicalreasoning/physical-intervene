@@ -208,6 +208,12 @@ SEED_RANGE_TRAIN = (1_000_000, 2_000_000)
 SEED_RANGE_VALIDATION = (2_000_000, 3_000_000)
 SEED_RANGE_SMOKE = (3_000_000, 4_000_000)
 SEED_RANGE_PILOT = (4_000_000, 5_000_000)
+# Inside the pilot range: the 1,000 pilot episodes start at its first seed, the 200 pilot test-like
+# states (one fresh episode each, skipped seeds included) at this offset.
+PILOT_STATES_OFFSET = 100_000
+# Test states (DESIGN.md, Splits): consecutive seeds from TEST_SEED_BASE + (the first 12 hex digits
+# of the sha256 of frozen/models.json, as an integer), above every other range by construction.
+TEST_SEED_BASE = 10_000_000
 # Inside the smoke range: Phase 0 attempt k (one per epsilon_near ladder value) starts at
 # SEED_RANGE_SMOKE[0] + k * SMOKE_ATTEMPT_STRIDE, so a rerun uses new smoke seeds. Attempt 0 ran at
 # epsilon_near 0.2; attempt 1 at 0.05; attempt 2 at 0.05 with the push label against the no-contact
@@ -229,9 +235,8 @@ FEASIBILITY_POLICY_DRAWS = 100
 # *set by pilot* items stay out of this file; Phase 0 uses placeholders recorded in its own record.
 # ---------------------------------------------------------------------------------------------
 
-# Phase flag (SMOKE_TEST.md, No-leak rule): while it is "phase0", the scoring entry point refuses
-# any trained checkpoint. Every checkpoint records the phase it was trained in.
-PHASE = "phase0"
+# The phase is read from the freeze records, not set here (seal.current_phase): "phase0" before
+# freeze 1, "training" between the freezes, "scoring" after freeze 2. Every checkpoint records it.
 
 # History before step HISTORY_LEN: missing (state, action) pairs are padded with copies of s_0 and
 # a zero action, and a mask input (1 real, 0 padding) marks them. The same for every model.

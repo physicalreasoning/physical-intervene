@@ -316,7 +316,7 @@ def test_checkpoint_records_what_the_scorer_needs(tmp_path) -> None:
     ck = torch.load(tmp_path / "u000010.pt", weights_only=False)
     meta = ck["meta"]
     assert meta["architecture"] == "mlp" and meta["width"] == "small" and meta["seed"] == 11
-    assert meta["updates"] == 10 and meta["trained"] is True and meta["phase"] == c.PHASE == "phase0"
+    assert meta["updates"] == 10 and meta["trained"] is True and meta["phase"] == "phase0"
     assert meta["data"]["train"]["file"] == "random" and "sha256" in meta["data"]["train"]
 
 

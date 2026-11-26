@@ -39,6 +39,7 @@ from physical_intervene.data import (
 from physical_intervene.metrics import corner_rmse_mm, plateau
 from physical_intervene.models import Batch, WorldModel, build, make_batch
 from physical_intervene.models.common import norm_action
+from physical_intervene.seal import current_phase
 
 STREAMS = {"init": 0, "batch": 1, "shortcut": 2, "rssm_train": 3, "rssm_predict": 4}
 
@@ -84,6 +85,8 @@ class TrainConfig:
     tag: str = ""
     rssm_variant: str = "design"  # exploration only: "dv3" uses DreamerV3's KL terms
     stop_at_plateau: bool = False  # pilot rule: stop at the first checkpoint meeting the plateau criterion
+    family: str = ""  # the design's name when it differs from arch (e.g. "mlp-twin" trains arch "mlp")
+    pilot_confirmation: bool = False  # the pilot's positive-control confirmation runs (DESIGN.md, Controls)
 
 
 @dataclass
@@ -404,7 +407,9 @@ def save_checkpoint(path: Path, model: WorldModel, cfg: TrainConfig, td: TrainDa
         "seed": cfg.seed,
         "updates": updates,
         "trained": True,
-        "phase": c.PHASE,
+        "phase": current_phase(),
+        "family": cfg.family or cfg.arch,
+        "pilot_confirmation": cfg.pilot_confirmation,
         "data": td.data_meta,
         "target": cfg.target_name,
         "params": model.n_params(),

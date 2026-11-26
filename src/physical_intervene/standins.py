@@ -38,7 +38,7 @@ from physical_intervene.data import TargetScaler
 from physical_intervene.gates import Family
 from physical_intervene.scoring import BLOCKS, InterventionSet, Prediction, losses, state_sums
 
-STANDIN_META = {"trained": False, "standin": True, "phase": c.PHASE}
+STANDIN_META = {"trained": False, "standin": True, "phase": "phase0"}
 KEYS = {"curve": 0, "bias": 1, "noise": 2}
 
 
@@ -229,7 +229,7 @@ def untrained_meta(arch: str, width: str, seed: int) -> dict:
         "seed": seed,
         "updates": 0,
         "trained": False,
-        "phase": c.PHASE,
+        "phase": "phase0",
         "note": "initial weights, never trained (Phase 0 stand-in)",
     }
 

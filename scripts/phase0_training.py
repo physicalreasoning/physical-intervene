@@ -511,7 +511,7 @@ def main() -> int:
 
     record = {
         "milestone": 2,
-        "phase": c.PHASE,
+        "phase": "phase0",
         "smoke_attempt": c.SMOKE_ATTEMPT,
         "quick": args.quick,
         "environment": {
