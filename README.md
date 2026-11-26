@@ -5,7 +5,8 @@ An intervention test for learned world models, the physical counterpart of
 [physicalreasoning/forward#5](https://github.com/physicalreasoning/forward/issues/5): do world
 models with matched validation loss predict the same outcome under an action they were not shown?
 
-**Status: design is a draft for the smoke test, not frozen.** No data has been generated and no model trained.
+**Status: design frozen at freeze 1** (`frozen/design.json`, posted on forward#5). Phase 0, the
+smoke test, is done (`results/phase0/`); no model has been trained on the training split.
 
 ## Task 1: planar pushing
 

@@ -1,8 +1,9 @@
 # physical-intervene, task 1: planar pushing
 
-**Status: draft for the smoke test (Phase 0), not frozen (physicalreasoning/forward#5).** A smoke test (Phase 0) checks
-the pipeline first. The design is then hashed before any model is trained on the training split
-(freeze 1) and again before any test state exists (freeze 2). After freeze 1 the text below is
+**Status: frozen at freeze 1 (physicalreasoning/forward#5).** This file's sha256 is recorded in
+`frozen/design.json` and posted on forward#5. A smoke test (Phase 0) checked the pipeline first
+(`results/phase0/REPORT_phase0.md`). The design is hashed before any model is trained on the
+training split (freeze 1) and again before any test state exists (freeze 2). After freeze 1 the text below is
 not edited: values it computes by fixed rules (the *set by pilot* items, V*, p) are filled in,
 and any other change is a dated amendment, reported beside the original text, never in place of
 it (see *Deviations after freeze 1*). Every result is published,
@@ -620,9 +621,11 @@ roughly five to eight days of CPU (an estimate scaled from the earlier 140 runs 
 days; most added runs are at medium width), or two or three free Colab or Kaggle GPU sessions. The `mlp-shortcut` runs start only after the medium-width main runs
 have finished, since p needs their V*; they are among the fastest runs. D_obs on the validation
 transitions takes 10,000 × 100 one-step simulations, a few CPU-minutes. The pilot's grid is 96
-runs (4 architectures, 8 settings, 3 seeds; 6 more for each architecture whose grid is extended) of at most 100,000 updates each, about one CPU-day
-at that cap by Phase 0's timings. The pilot confirms these estimates. If it does not, the large width is dropped,
-a fallback stated now. The twins are not dropped to save compute.
+runs (4 architectures, 8 settings, 3 seeds; 6 more for each architecture whose grid is extended)
+of at most 100,000 updates each: one to four CPU-days by Phase 0's timings, depending on how many
+runs reach the cap (batch size 1,024 costs about three to four times as much per update as 256).
+The pilot confirms these estimates. If it does not, the large width is dropped, a fallback stated
+now. The twins are not dropped to save compute.
 
 ## Limits, stated now
 
