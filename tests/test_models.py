@@ -16,6 +16,7 @@ from physical_intervene.models.common import Batch  # noqa: E402
 from physical_intervene.models.contact_wm import ContactWM, push_twist  # noqa: E402
 from physical_intervene.models.mlp import mlp_input_dim  # noqa: E402
 from physical_intervene.models.rssm import RSSM, Gaussian, kl_divergence  # noqa: E402
+from physical_intervene.seal import PHASES, current_phase  # noqa: E402
 from physical_intervene.train import TrainConfig, TrainData, stream_seed, train  # noqa: E402
 
 STANDIN_P = 0.3  # stand-in for mlp-shortcut's p, which is computed only after the main runs
@@ -316,7 +317,8 @@ def test_checkpoint_records_what_the_scorer_needs(tmp_path) -> None:
     ck = torch.load(tmp_path / "u000010.pt", weights_only=False)
     meta = ck["meta"]
     assert meta["architecture"] == "mlp" and meta["width"] == "small" and meta["seed"] == 11
-    assert meta["updates"] == 10 and meta["trained"] is True and meta["phase"] == "phase0"
+    assert meta["updates"] == 10 and meta["trained"] is True
+    assert meta["phase"] == current_phase() and meta["phase"] in PHASES  # read from the freeze records
     assert meta["data"]["train"]["file"] == "random" and "sha256" in meta["data"]["train"]
 
 
