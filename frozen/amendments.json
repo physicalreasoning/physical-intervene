@@ -23,6 +23,13 @@
     "scripts/make_data.py": "0cec4704544bb6132b135e79402489a4b4fbd50ecdac4e338c1d407517a820ee",
     "scripts/score.py": "38a5b1543279f60899b313a860cd83a39a9b7a7456cae252cbfa17143b1cdf83"
    }
+  },
+  {
+   "file": "frozen/amendments/2026-11-27.md",
+   "sha256": "478be9c8e6e2938b829339e072a167184c873102b06f39cc4b7841a0c9891288",
+   "code_sha256": {
+    "src/physical_intervene/results_format.py": "bf290470924ebf4549cf1944abde3a5e58bf2671ce953f3385ee63c73d805e53"
+   }
   }
  ]
 }

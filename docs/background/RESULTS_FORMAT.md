@@ -33,7 +33,8 @@ flag; twin pairs also carry `matched_push_gap_states_only`), `gates.gate_positiv
 `gates.gate_g1_passing_pairs` (the main pairs that meet the pass conditions),
 `logged_action` (per model, the logged action scored on the test states), and, from
 DESIGN.md's matching rules, `matched_only` and `gap_along_training` per pair (levels and
-reading) and `met_plateau_criterion` per run. `updates` at the top level is the largest
+reading) and `met_plateau_criterion` per run (true if the run met the plateau criterion at any
+checkpoint up to its last, that is, it has a plateau point). `updates` at the top level is the largest
 architecture's budget; each model block gives its own `updates`. Values below are
 placeholders.
 
