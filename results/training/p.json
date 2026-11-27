@@ -1,0 +1,19 @@
+{
+ "rule": "DESIGN.md, Controls: p is the largest grid value with L_mlp + p^2 D_obs <= V*",
+ "v_star": 0.06491012780910584,
+ "v_star_set_by": "mlp-ms",
+ "medians_best_l_obs": {
+  "mlp": 0.052474024320716156,
+  "gru": 0.05576005269247137,
+  "mlp-ms": 0.05900920709918712,
+  "contact_wm": 0.007708532733930532
+ },
+ "l_mlp": 0.052474024320716156,
+ "d_obs": 0.06464750229583317,
+ "d_obs_from": {
+  "file": "validation_policy_mean.npz",
+  "sha256": "e962b66b6049235801394ed3b1769c96194133fbc9f26ea96c131fdc14027f39"
+ },
+ "p": 0.4,
+ "positive_control": "run"
+}
