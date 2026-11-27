@@ -136,7 +136,8 @@ def seed_rows(fam: G.Family, m: G.Match, ctx_scaler, iset: InterventionSet) -> l
             "best_obs_val_loss": float(fam.best_l()[i]),
             "matched_obs_val_loss": float(m.l[i]),
             "matched_excluded": bool(m.excluded[i]),
-            "met_plateau_criterion": plateau(fam.updates, list(fam.l_obs[i]))["met_at_last_checkpoint"],
+            # met by its last checkpoint (DESIGN.md, Models, Training): the run has a plateau point
+            "met_plateau_criterion": plateau(fam.updates, list(fam.l_obs[i]))["first_update_met"] is not None,
             "best_push_std_mse": float(fam.run_e(HARD, best.idx)[i]),
             "matched_push_std_mse": float(fam.run_e(HARD, m.idx)[i]),
         }

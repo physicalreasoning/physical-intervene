@@ -291,6 +291,30 @@ def test_conformance_reports_missing_keys() -> None:
     assert any("missing pairwise_gate_g1" in e for e in errors)
 
 
+def test_met_plateau_criterion_with_a_budget_off_the_1000_grid() -> None:
+    """The main budgets (e.g. 73,500) end between the 1,000-update checkpoints the criterion is
+    tested at. Each run still reports whether it met the criterion by its last checkpoint."""
+    updates = [*range(1000, 14_001, 1000), 14_500]
+    k = len(updates)
+    flat = [0.5] * k  # met at 11,000 and still met
+    falling = [1.0 / u for u in range(1, k + 1)]  # never met
+    met_then_falls = [0.5] * 12 + [0.4, 0.3, 0.2]  # met at 11,000, not met at the end
+    l_obs = np.array([flat, falling, met_then_falls])
+    fam = SI.synthetic_family("mlp", updates, l_obs)
+    n = 4
+    iset = S.InterventionSet(
+        s=np.zeros((n, 11)),
+        actions=np.zeros((n, 25, 2)),
+        y_true=np.zeros((n, 25, 3)),
+        label=np.full((n, 25), 2),
+        kinds=np.array([0] + [1] * 12 + [2] * 12),
+    )
+    pred = S.Prediction(val=np.zeros((1, 3)), interventions=np.zeros((n, 25, 3)))
+    fam.meta["predict"] = lambda i, j: pred
+    rows = RF.seed_rows(fam, G.match(fam, 0.5, min_seeds=1), None, iset)
+    assert [r["met_plateau_criterion"] for r in rows] == [True, False, True]
+
+
 # Histories of test-like states -------------------------------------------------------------------
 
 
